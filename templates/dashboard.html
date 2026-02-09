@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Sistema PIP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
+    <span class="text-muted">Olá, {{ session.nome }}!</span>
+</div>
+
+<!-- Cards de Estatísticas -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Total de Investigações</h6>
+                        <h2 class="card-title mb-0">{{ total }}</h2>
+                    </div>
+                    <i class="bi bi-folder" style="font-size: 3rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Em Andamento</h6>
+                        <h2 class="card-title mb-0">{{ em_andamento }}</h2>
+                    </div>
+                    <i class="bi bi-hourglass-split" style="font-size: 3rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Concluídas</h6>
+                        <h2 class="card-title mb-0">{{ concluidas }}</h2>
+                    </div>
+                    <i class="bi bi-check-circle" style="font-size: 3rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Investigações Recentes -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Investigações Recentes</h5>
+        <a href="{{ url_for('investigacoes') }}" class="btn btn-sm btn-primary">Ver Todas</a>
+    </div>
+    <div class="card-body">
+        {% if recentes %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Processo</th>
+                        <th>Denunciado</th>
+                        <th>Assunto</th>
+                        <th>Status</th>
+                        <th>Responsável</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inv in recentes %}
+                    <tr>
+                        <td><strong>#{{ inv.id }}</strong></td>
+                        <td>{{ inv.processo_gdoc }}</td>
+                        <td>{{ inv.nome_denunciado }}</td>
+                        <td><span class="badge bg-info">{{ inv.assunto }}</span></td>
+                        <td>
+                            {% if inv.status == 'Concluída' %}
+                            <span class="badge bg-success">{{ inv.status }}</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">{{ inv.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ inv.responsavel }}</td>
+                        <td>
+                            <a href="{{ url_for('detalhes', id=inv.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center my-4">Nenhuma investigação cadastrada ainda.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

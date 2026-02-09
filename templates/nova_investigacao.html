@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Nova Investigação - Sistema PIP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-plus-circle"></i> Nova Investigação
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('investigacoes') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Cancelar
+        </a>
+    </div>
+</div>
+
+<form method="POST" action="{{ url_for('nova_investigacao') }}">
+    <div class="row">
+        <!-- Coluna Esquerda -->
+        <div class="col-md-6">
+            <!-- Informações Básicas -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informações Básicas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Responsável <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="responsavel" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Processo GDOC <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="processo_gdoc" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ano</label>
+                            <input type="number" class="form-control" name="ano" value="2025">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Origem</label>
+                            <select class="form-select" name="origem">
+                                <option value="">Selecione...</option>
+                                <option value="Externo">Externo</option>
+                                <option value="Interno">Interno</option>
+                                <option value="Ouvidoria">Ouvidoria</option>
+                                <option value="CGU">CGU</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Canal</label>
+                            <select class="form-select" name="canal">
+                                <option value="">Selecione...</option>
+                                <option value="E-mail">E-mail</option>
+                                <option value="Presencial">Presencial</option>
+                                <option value="Telefone">Telefone</option>
+                                <option value="Sistema">Sistema</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Protocolo Origem</label>
+                        <input type="text" class="form-control" name="protocolo_origem">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Unidade de Origem</label>
+                        <input type="text" class="form-control" name="unidade_origem">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Admitida/Inadmitida</label>
+                            <select class="form-select" name="admitida_ou_inadmitida">
+                                <option value="">Selecione...</option>
+                                <option value="Admitida">Admitida</option>
+                                <option value="Inadmitida">Inadmitida</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Complexidade</label>
+                            <select class="form-select" name="complexidade">
+                                <option value="">Selecione...</option>
+                                <option value="Baixa">Baixa</option>
+                                <option value="Média">Média</option>
+                                <option value="Alta">Alta</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Classificação -->
+            <div class="card mb-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-tags"></i> Classificação</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Classificação</label>
+                        <select class="form-select" name="classificacao">
+                            <option value="">Selecione...</option>
+                            <option value="Assédio Moral">Assédio Moral</option>
+                            <option value="Assédio Sexual">Assédio Sexual</option>
+                            <option value="Transgressão Disciplinar">Transgressão Disciplinar</option>
+                            <option value="Irregularidade Administrativa">Irregularidade Administrativa</option>
+                            <option value="Corrupção">Corrupção</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Assunto</label>
+                        <select class="form-select" name="assunto">
+                            <option value="">Selecione...</option>
+                            <option value="Assédio Moral">Assédio Moral</option>
+                            <option value="Assédio Sexual">Assédio Sexual</option>
+                            <option value="Desvio de Função">Desvio de Função</option>
+                            <option value="Nepotismo">Nepotismo</option>
+                            <option value="Fraude">Fraude</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Direita -->
+        <div class="col-md-6">
+            <!-- Denunciante e Denunciado -->
+            <div class="card mb-3">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="bi bi-people"></i> Envolvidos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Denunciante(s)</label>
+                        <input type="text" class="form-control" name="denunciante" placeholder="Ex: Anônimo, João Silva">
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nome do Denunciado</label>
+                        <input type="text" class="form-control" name="nome_denunciado">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Matrícula do Denunciado</label>
+                        <input type="text" class="form-control" name="matricula_denunciado">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Setor</label>
+                        <input type="text" class="form-control" name="setor">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Diretoria</label>
+                        <input type="text" class="form-control" name="diretoria">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Vínculo</label>
+                        <select class="form-select" name="vinculo">
+                            <option value="">Selecione...</option>
+                            <option value="Efetivo">Efetivo</option>
+                            <option value="Comissionado">Comissionado</option>
+                            <option value="Terceirizado">Terceirizado</option>
+                            <option value="Estagiário">Estagiário</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prazos -->
+            <div class="card mb-3">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar"></i> Prazos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Entrada PRFI</label>
+                        <input type="date" class="form-control" name="entrada_prfi">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Previsão de Conclusão</label>
+                        <input type="date" class="form-control" name="previsao_conclusao">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status">
+                            <option value="Em Andamento" selected>Em Andamento</option>
+                            <option value="Concluída">Concluída</option>
+                            <option value="Arquivada">Arquivada</option>
+                            <option value="Suspensa">Suspensa</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Descrições (Largura Total) -->
+        <div class="col-12">
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-file-text"></i> Descrições</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Objeto / Especificação</label>
+                        <textarea class="form-control" name="objeto_especificacao" rows="4" placeholder="Descreva os fatos investigados..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Diligências</label>
+                        <textarea class="form-control" name="diligencias" rows="4" placeholder="Liste as diligências realizadas ou a serem realizadas..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Justificativa</label>
+                        <textarea class="form-control" name="justificativa" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botões -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
+                <a href="{{ url_for('investigacoes') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> Cadastrar Investigação
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% endblock %}

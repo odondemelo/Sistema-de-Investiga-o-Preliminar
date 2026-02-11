@@ -12,8 +12,6 @@
 </nav>
 {% endblock %}
 
-
-
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">
@@ -38,7 +36,7 @@
                         <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total }}</div>
                     </div>
                     <div class="col-auto">
-                        <i class="bi bi-folder-fill fa-2x text-gray-300" style="font-size: 2rem; color: #4e73df;"></i>
+                        <i class="bi bi-folder-fill text-gray-300" style="font-size: 2rem; color: #4e73df;"></i>
                     </div>
                 </div>
             </div>
@@ -57,7 +55,7 @@
                         <div class="h5 mb-0 font-weight-bold text-gray-800">{{ em_andamento }}</div>
                     </div>
                     <div class="col-auto">
-                        <i class="bi bi-hourglass-split fa-2x text-gray-300" style="font-size: 2rem; color: #f6c23e;"></i>
+                        <i class="bi bi-hourglass-split text-gray-300" style="font-size: 2rem; color: #f6c23e;"></i>
                     </div>
                 </div>
             </div>
@@ -76,7 +74,7 @@
                         <div class="h5 mb-0 font-weight-bold text-gray-800">{{ concluidas }}</div>
                     </div>
                     <div class="col-auto">
-                        <i class="bi bi-check-circle-fill fa-2x text-gray-300" style="font-size: 2rem; color: #1cc88a;"></i>
+                        <i class="bi bi-check-circle-fill text-gray-300" style="font-size: 2rem; color: #1cc88a;"></i>
                     </div>
                 </div>
             </div>
@@ -95,7 +93,7 @@
                         <div class="h5 mb-0 font-weight-bold text-gray-800">{{ atrasadas|length }}</div>
                     </div>
                     <div class="col-auto">
-                        <i class="bi bi-exclamation-triangle-fill fa-2x text-gray-300" style="font-size: 2rem; color: #e74a3b;"></i>
+                        <i class="bi bi-exclamation-triangle-fill text-gray-300" style="font-size: 2rem; color: #e74a3b;"></i>
                     </div>
                 </div>
             </div>
@@ -107,15 +105,52 @@
 <div class="row">
     <!-- COLUNA ESQUERDA: GRÁFICOS -->
     <div class="col-lg-8">
-        <!-- GRÁFICO DE PIZZA: STATUS -->
+
+        <div class="row">
+            <!-- GRÁFICO DE PIZZA: STATUS -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow h-100">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="bi bi-pie-chart-fill"></i> Status Atual
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="position: relative; height:250px;">
+                            <canvas id="graficoStatus"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GRÁFICO DE BARRAS: CLASSIFICAÇÃO -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow h-100">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="bi bi-bar-chart-fill"></i> Por Classificação
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="position: relative; height:250px;">
+                            <canvas id="graficoClassificacao"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRÁFICO DE LINHA: EVOLUÇÃO POR ANO -->
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">
-                    <i class="bi bi-pie-chart-fill"></i> Distribuição por Status
+                    <i class="bi bi-graph-up"></i> Evolução por Ano
                 </h6>
             </div>
             <div class="card-body">
-                <canvas id="graficoStatus" width="400" height="200"></canvas>
+                <div class="chart-container" style="position: relative; height:300px;">
+                    <canvas id="graficoAno"></canvas>
+                </div>
             </div>
         </div>
 
@@ -178,7 +213,7 @@
         <div class="card shadow mb-4 border-left-danger">
             <div class="card-header bg-danger text-white py-3">
                 <h6 class="m-0 font-weight-bold">
-                    <i class="bi bi-exclamation-triangle-fill"></i> Investigações Atrasadas ({{ atrasadas|length }})
+                    <i class="bi bi-exclamation-triangle-fill"></i> Atrasadas ({{ atrasadas|length }})
                 </h6>
             </div>
             <div class="card-body" style="max-height: 300px; overflow-y: auto;">
@@ -249,48 +284,98 @@
 <!-- SCRIPT DO CHART.JS -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-    // GRÁFICO DE PIZZA: STATUS
-    const ctx = document.getElementById('graficoStatus').getContext('2d');
-    const graficoStatus = new Chart(ctx, {
+    // Configuração comum para responsividade
+    Chart.defaults.font.family = "'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif";
+    Chart.defaults.color = '#858796';
+
+    // 1. GRÁFICO DE PIZZA: STATUS
+    const ctxStatus = document.getElementById('graficoStatus').getContext('2d');
+    new Chart(ctxStatus, {
         type: 'doughnut',
         data: {
             labels: ['Em Andamento', 'Concluídas', 'Atrasadas'],
             datasets: [{
                 data: [{{ em_andamento }}, {{ concluidas }}, {{ atrasadas|length }}],
-                backgroundColor: [
-                    '#f6c23e',  // Amarelo (Em Andamento)
-                    '#1cc88a',  // Verde (Concluídas)
-                    '#e74a3b'   // Vermelho (Atrasadas)
-                ],
-                borderWidth: 2,
-                borderColor: '#fff'
+                backgroundColor: ['#f6c23e', '#1cc88a', '#e74a3b'],
+                hoverBackgroundColor: ['#dda20a', '#17a673', '#be2617'],
+                hoverBorderColor: "rgba(234, 236, 244, 1)",
             }]
         },
         options: {
-            responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 15,
-                        font: {
-                            size: 14
-                        }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            label += context.parsed + ' investigações';
-                            return label;
-                        }
-                    }
-                }
+                legend: { position: 'bottom' }
+            },
+            cutout: '70%',
+        }
+    });
+
+    // 2. GRÁFICO DE BARRAS: CLASSIFICAÇÃO
+    // Recebendo dados do Python
+    const dadosClassificacao = {{ dados_classificacao | tojson }};
+    const labelsClass = Object.keys(dadosClassificacao);
+    const valuesClass = Object.values(dadosClassificacao);
+
+    const ctxClass = document.getElementById('graficoClassificacao').getContext('2d');
+    new Chart(ctxClass, {
+        type: 'bar',
+        data: {
+            labels: labelsClass,
+            datasets: [{
+                label: 'Quantidade',
+                data: valuesClass,
+                backgroundColor: '#4e73df',
+                hoverBackgroundColor: '#2e59d9',
+                borderColor: '#4e73df',
+                borderRadius: 5
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+
+    // 3. GRÁFICO DE LINHA: EVOLUÇÃO POR ANO
+    const dadosAno = {{ dados_ano | tojson }};
+    // Ordenar os anos
+    const sortedYears = Object.keys(dadosAno).sort();
+    const valuesAno = sortedYears.map(year => dadosAno[year]);
+
+    const ctxAno = document.getElementById('graficoAno').getContext('2d');
+    new Chart(ctxAno, {
+        type: 'line',
+        data: {
+            labels: sortedYears,
+            datasets: [{
+                label: 'Investigações',
+                data: valuesAno,
+                fill: true,
+                backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                borderColor: '#4e73df',
+                tension: 0.3, // Curva suave
+                pointRadius: 3,
+                pointBackgroundColor: '#4e73df',
+                pointBorderColor: '#4e73df',
+                pointHoverRadius: 3,
+                pointHoverBackgroundColor: '#4e73df',
+                pointHoverBorderColor: '#4e73df',
+                pointHitRadius: 10,
+                pointBorderWidth: 2,
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
             }
         }
     });
@@ -298,31 +383,14 @@
 
 <style>
     /* ESTILOS PARA OS CARDS */
-    .border-left-primary {
-        border-left: 4px solid #4e73df !important;
-    }
-    .border-left-success {
-        border-left: 4px solid #1cc88a !important;
-    }
-    .border-left-warning {
-        border-left: 4px solid #f6c23e !important;
-    }
-    .border-left-danger {
-        border-left: 4px solid #e74a3b !important;
-    }
-    .shadow {
-        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
-    }
-    .card {
-        border-radius: 0.35rem;
-    }
-    .text-xs {
-        font-size: 0.7rem;
-        font-weight: 700;
-    }
-    canvas {
-        max-height: 300px;
-    }
+    .border-left-primary { border-left: 4px solid #4e73df !important; }
+    .border-left-success { border-left: 4px solid #1cc88a !important; }
+    .border-left-warning { border-left: 4px solid #f6c23e !important; }
+    .border-left-danger { border-left: 4px solid #e74a3b !important; }
+    .shadow { box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important; }
+    .card { border-radius: 0.35rem; border: none; }
+    .text-xs { font-size: 0.7rem; font-weight: 700; }
+    .chart-container { position: relative; margin: auto; height: 100%; width: 100%; }
 </style>
 
 {% endblock %}

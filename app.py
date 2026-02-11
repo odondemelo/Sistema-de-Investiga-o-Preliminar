@@ -154,11 +154,28 @@ def dashboard():
 
     hoje = datetime.now().date()
 
-    # Estatísticas gerais
+    # === DADOS GERAIS ===
     total = Investigacao.query.count()
     em_andamento = Investigacao.query.filter_by(status='Em Andamento').count()
     concluidas = Investigacao.query.filter_by(status='Concluída').count()
 
+    # === DADOS PARA GRÁFICOS ===
+
+    # 1. Gráfico de Pizza: Status
+    # Conta quantas investigações existem para cada status
+    status_raw = db.session.query(Investigacao.status, db.func.count(Investigacao.status)).group_by(Investigacao.status).all()
+    # Transforma em formato fácil para o gráfico: {'Em Andamento': 10, 'Concluída': 5}
+    dados_status = {s[0]: s[1] for s in status_raw if s[0]}
+
+    # 2. Gráfico de Barras: Investigações por Ano
+    ano_raw = db.session.query(Investigacao.ano, db.func.count(Investigacao.ano)).group_by(Investigacao.ano).all()
+    dados_ano = {str(a[0]): a[1] for a in ano_raw if a[0]}
+
+    # 3. Gráfico de Barras: Por Classificação (Assédio, Furto, etc)
+    class_raw = db.session.query(Investigacao.classificacao, db.func.count(Investigacao.classificacao)).group_by(Investigacao.classificacao).all()
+    dados_classificacao = {c[0]: c[1] for c in class_raw if c[0]}
+
+    # === TABELAS DE ALERTA ===
     # Investigações atrasadas
     atrasadas = Investigacao.query.filter(
         Investigacao.status == 'Em Andamento',
@@ -183,7 +200,12 @@ def dashboard():
                          recentes=recentes,
                          atrasadas=atrasadas,
                          proximas_prazo=proximas_prazo,
-                         hoje=hoje)
+                         hoje=hoje,
+                         # Passando os dados novos para o HTML
+                         dados_status=dados_status,
+                         dados_ano=dados_ano,
+                         dados_classificacao=dados_classificacao)
+
 
 
 # ==================== ROTA: RELATÓRIOS ====================

@@ -1,107 +1,328 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Sistema PIP{% endblock %}
+{% block title %}Dashboard - Corregedoria PRF{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb" class="mt-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item active" aria-current="page">
+            <i class="bi bi-house-door"></i> Dashboard
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
-    <span class="text-muted">Olá, {{ session.nome }}!</span>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-speedometer2"></i> Dashboard
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <span class="text-muted">Bem-vindo, <strong>{{ session.nome }}</strong>!</span>
+    </div>
 </div>
 
-<!-- Cards de Estatísticas -->
+<!-- CARDS DE ESTATÍSTICAS -->
 <div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card text-white bg-primary">
+    <!-- CARD: TOTAL DE INVESTIGAÇÕES -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Total de Investigações</h6>
-                        <h2 class="card-title mb-0">{{ total }}</h2>
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total de Investigações
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total }}</div>
                     </div>
-                    <i class="bi bi-folder" style="font-size: 3rem; opacity: 0.5;"></i>
+                    <div class="col-auto">
+                        <i class="bi bi-folder-fill fa-2x text-gray-300" style="font-size: 2rem; color: #4e73df;"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card text-white bg-warning">
+    <!-- CARD: EM ANDAMENTO -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Em Andamento</h6>
-                        <h2 class="card-title mb-0">{{ em_andamento }}</h2>
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Em Andamento
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ em_andamento }}</div>
                     </div>
-                    <i class="bi bi-hourglass-split" style="font-size: 3rem; opacity: 0.5;"></i>
+                    <div class="col-auto">
+                        <i class="bi bi-hourglass-split fa-2x text-gray-300" style="font-size: 2rem; color: #f6c23e;"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card text-white bg-success">
+    <!-- CARD: CONCLUÍDAS -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Concluídas</h6>
-                        <h2 class="card-title mb-0">{{ concluidas }}</h2>
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Concluídas
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ concluidas }}</div>
                     </div>
-                    <i class="bi bi-check-circle" style="font-size: 3rem; opacity: 0.5;"></i>
+                    <div class="col-auto">
+                        <i class="bi bi-check-circle-fill fa-2x text-gray-300" style="font-size: 2rem; color: #1cc88a;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CARD: ATRASADAS -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            Atrasadas
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ atrasadas|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-exclamation-triangle-fill fa-2x text-gray-300" style="font-size: 2rem; color: #e74a3b;"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Investigações Recentes -->
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Investigações Recentes</h5>
-        <a href="{{ url_for('investigacoes') }}" class="btn btn-sm btn-primary">Ver Todas</a>
+<!-- SEGUNDA LINHA: GRÁFICOS E ALERTAS -->
+<div class="row">
+    <!-- COLUNA ESQUERDA: GRÁFICOS -->
+    <div class="col-lg-8">
+        <!-- GRÁFICO DE PIZZA: STATUS -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-pie-chart-fill"></i> Distribuição por Status
+                </h6>
+            </div>
+            <div class="card-body">
+                <canvas id="graficoStatus" width="400" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- INVESTIGAÇÕES RECENTES -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-clock-history"></i> Investigações Recentes
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if recentes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Processo GDOC</th>
+                                    <th>Denunciado</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for inv in recentes %}
+                                <tr>
+                                    <td><strong>#{{ inv.id }}</strong></td>
+                                    <td>{{ inv.processo_gdoc or '-' }}</td>
+                                    <td>{{ inv.nome_denunciado or '-' }}</td>
+                                    <td>
+                                        {% if inv.status == 'Em Andamento' %}
+                                            <span class="badge bg-warning text-dark">{{ inv.status }}</span>
+                                        {% elif inv.status == 'Concluída' %}
+                                            <span class="badge bg-success">{{ inv.status }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ inv.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('detalhes', id=inv.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">Nenhuma investigação cadastrada ainda.</p>
+                {% endif %}
+            </div>
+        </div>
     </div>
-    <div class="card-body">
-        {% if recentes %}
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Processo</th>
-                        <th>Denunciado</th>
-                        <th>Assunto</th>
-                        <th>Status</th>
-                        <th>Responsável</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for inv in recentes %}
-                    <tr>
-                        <td><strong>#{{ inv.id }}</strong></td>
-                        <td>{{ inv.processo_gdoc }}</td>
-                        <td>{{ inv.nome_denunciado }}</td>
-                        <td><span class="badge bg-info">{{ inv.assunto }}</span></td>
-                        <td>
-                            {% if inv.status == 'Concluída' %}
-                            <span class="badge bg-success">{{ inv.status }}</span>
-                            {% else %}
-                            <span class="badge bg-warning text-dark">{{ inv.status }}</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ inv.responsavel }}</td>
-                        <td>
-                            <a href="{{ url_for('detalhes', id=inv.id) }}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                        </td>
-                    </tr>
+
+    <!-- COLUNA DIREITA: ALERTAS E PRAZOS -->
+    <div class="col-lg-4">
+        <!-- ALERTAS: INVESTIGAÇÕES ATRASADAS -->
+        {% if atrasadas %}
+        <div class="card shadow mb-4 border-left-danger">
+            <div class="card-header bg-danger text-white py-3">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Investigações Atrasadas ({{ atrasadas|length }})
+                </h6>
+            </div>
+            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                <ul class="list-group list-group-flush">
+                    {% for inv in atrasadas %}
+                    <li class="list-group-item px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong><a href="{{ url_for('detalhes', id=inv.id) }}" class="text-decoration-none">#{{ inv.id }}</a></strong><br>
+                                <small class="text-muted">{{ inv.processo_gdoc or 'Sem processo' }}</small>
+                            </div>
+                            <span class="badge bg-danger">Atrasado</span>
+                        </div>
+                    </li>
                     {% endfor %}
-                </tbody>
-            </table>
+                </ul>
+            </div>
         </div>
-        {% else %}
-        <p class="text-muted text-center my-4">Nenhuma investigação cadastrada ainda.</p>
         {% endif %}
+
+        <!-- ALERTAS: PRÓXIMAS DO PRAZO -->
+        {% if proximas_prazo %}
+        <div class="card shadow mb-4 border-left-warning">
+            <div class="card-header bg-warning py-3">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="bi bi-clock-fill"></i> Próximas do Prazo ({{ proximas_prazo|length }})
+                </h6>
+            </div>
+            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                <ul class="list-group list-group-flush">
+                    {% for inv in proximas_prazo %}
+                    <li class="list-group-item px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong><a href="{{ url_for('detalhes', id=inv.id) }}" class="text-decoration-none">#{{ inv.id }}</a></strong><br>
+                                <small class="text-muted">{{ inv.processo_gdoc or 'Sem processo' }}</small>
+                            </div>
+                            <span class="badge bg-warning text-dark">{{ inv.dias_restantes }} dias</span>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- AÇÕES RÁPIDAS -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-lightning-fill"></i> Ações Rápidas
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('nova_investigacao') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Nova Investigação
+                    </a>
+                    <a href="{{ url_for('investigacoes') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-list-ul"></i> Ver Todas
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<!-- SCRIPT DO CHART.JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // GRÁFICO DE PIZZA: STATUS
+    const ctx = document.getElementById('graficoStatus').getContext('2d');
+    const graficoStatus = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Em Andamento', 'Concluídas', 'Atrasadas'],
+            datasets: [{
+                data: [{{ em_andamento }}, {{ concluidas }}, {{ atrasadas|length }}],
+                backgroundColor: [
+                    '#f6c23e',  // Amarelo (Em Andamento)
+                    '#1cc88a',  // Verde (Concluídas)
+                    '#e74a3b'   // Vermelho (Atrasadas)
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        font: {
+                            size: 14
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += context.parsed + ' investigações';
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+<style>
+    /* ESTILOS PARA OS CARDS */
+    .border-left-primary {
+        border-left: 4px solid #4e73df !important;
+    }
+    .border-left-success {
+        border-left: 4px solid #1cc88a !important;
+    }
+    .border-left-warning {
+        border-left: 4px solid #f6c23e !important;
+    }
+    .border-left-danger {
+        border-left: 4px solid #e74a3b !important;
+    }
+    .shadow {
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+    }
+    .card {
+        border-radius: 0.35rem;
+    }
+    .text-xs {
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+    canvas {
+        max-height: 300px;
+    }
+</style>
+
 {% endblock %}

@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+
+{% block title %}Investigação #{{ investigacao.id }} - Sistema PIP{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb" class="mt-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('dashboard') }}"><i class="bi bi-house-door"></i> Dashboard</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('investigacoes') }}"><i class="bi bi-list-ul"></i> Investigações</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+            <i class="bi bi-file-earmark-text"></i> Investigação #{{ investigacao.id }}
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-file-earmark-text"></i> Investigação #{{ investigacao.id }}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        {% if user_nivel in ['admin', 'investigador'] %}
+        <a href="{{ url_for('editar_investigacao', id=investigacao.id) }}" class="btn btn-sm btn-warning me-2">
+            <i class="bi bi-pencil-square"></i> Editar
+        </a>
+        {% endif %}
+
+        <!-- BOTÃO EXCLUIR (SÓ ADMIN) -->
+        {% if user_nivel == 'admin' %}
+        <button type="button" class="btn btn-sm btn-danger me-2" data-bs-toggle="modal" data-bs-target="#modalExcluir">
+            <i class="bi bi-trash"></i> Excluir
+        </button>
+        {% endif %}
+
+        <a href="{{ url_for('exportar_pdf_investigacao', id=investigacao.id) }}" class="btn btn-sm btn-danger me-2">
+            <i class="bi bi-file-pdf"></i> Exportar PDF
+        </a>
+        <a href="{{ url_for('imprimir_investigacao', id=investigacao.id) }}" class="btn btn-sm btn-info text-white me-2" target="_blank">
+            <i class="bi bi-printer"></i> Imprimir
+        </a>
+        <a href="{{ url_for('investigacoes') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
+</div>
+
+<!-- Informações Principais -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informações Gerais</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Processo GDOC:</strong><br>
+                        {{ investigacao.processo_gdoc or '-' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Protocolo Origem:</strong><br>
+                        {{ investigacao.protocolo_origem or '-' }}
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Origem:</strong><br>
+                        {{ investigacao.origem or '-' }} / {{ investigacao.canal or '-' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Unidade de Origem:</strong><br>
+                        {{ investigacao.unidade_origem or '-' }}
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Classificação:</strong><br>
+                        <span class="badge bg-secondary">{{ investigacao.classificacao or '-' }}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Assunto:</strong><br>
+                        <span class="badge bg-info">{{ investigacao.assunto or '-' }}</span>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <strong>Denunciante(s):</strong><br>
+                        {{ investigacao.denunciante or '-' }}
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Denunciado:</strong><br>
+                        {{ investigacao.nome_denunciado or '-' }}<br>
+                        <small class="text-muted">Matrícula: {{ investigacao.matricula_denunciado or '-' }}</small>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Setor / Diretoria:</strong><br>
+                        {{ investigacao.setor or '-' }} / {{ investigacao.diretoria or '-' }}<br>
+                        <small class="text-muted">Vínculo: {{ investigacao.vinculo or '-' }}</small>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-12">
+                        <strong>Objeto / Especificação:</strong><br>
+                        <p class="mt-2">{{ investigacao.objeto_especificacao or '-' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Diligências -->
+        <div class="card mb-3">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-list-check"></i> Diligências</h5>
+            </div>
+            <div class="card-body">
+                {% if investigacao.diligencias %}
+                    <p style="white-space: pre-line;">{{ investigacao.diligencias }}</p>
+                {% else %}
+                    <p class="text-muted">Nenhuma diligência registrada.</p>
+                {% endif %}
+
+                <hr>
+
+                <!-- Formulário para adicionar nova diligência -->
+                {% if user_nivel in ['admin', 'investigador'] %}
+                <form method="POST" action="{{ url_for('adicionar_diligencia', id=investigacao.id) }}">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Adicionar Nova Diligência:</strong></label>
+                        <textarea class="form-control" name="descricao" rows="4" placeholder="Descreva a diligência realizada..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Adicionar Diligência
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Anexos -->
+        <div class="card mb-3">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-paperclip"></i> Anexos</h5>
+            </div>
+            <div class="card-body">
+                <!-- Formulário de Upload de Anexos -->
+                {% if user_nivel in ['admin', 'investigador'] %}
+                <form method="POST" action="{{ url_for('upload_anexo', id=investigacao.id) }}" enctype="multipart/form-data" class="mb-4">
+                    <div class="mb-3">
+                        <label for="file" class="form-label"><strong>Adicionar Novo Anexo:</strong></label>
+                        <input class="form-control" type="file" id="file" name="file" required>
+                        <div class="form-text">Tipos permitidos: txt, pdf, png, jpg, jpeg, gif, doc, docx, xls, xlsx. Tamanho máximo: 16MB.</div>
+                    </div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-upload"></i> Fazer Upload
+                    </button>
+                </form>
+                {% endif %}
+
+                <hr>
+
+                <!-- Lista de Anexos Existentes -->
+                <h6>Anexos Existentes:</h6>
+                {% if anexos %}
+                    <ul class="list-group">
+                        {% for anexo in anexos %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-file-earmark-arrow-down me-2"></i>
+                                    <a href="{{ url_for('download_anexo', anexo_id=anexo.id) }}" target="_blank" class="text-decoration-none">
+                                        {{ anexo.nome_arquivo }}
+                                    </a>
+                                    <small class="text-muted ms-2">
+                                        ({{ (anexo.tamanho_bytes / 1024 / 1024)|round(2) }} MB) -
+                                        Upload por {{ anexo.usuario_upload or 'Sistema' }} em {{ anexo.data_upload.strftime('%d/%m/%Y %H:%M') }}
+                                    </small>
+                                </div>
+
+                                <!-- Botão de Exclusão (só para admin e investigador) -->
+                                {% if user_nivel in ['admin', 'investigador'] %}
+                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#modalExcluirAnexo{{ anexo.id }}">
+                                    <i class="bi bi-trash"></i> Excluir
+                                </button>
+                                {% endif %}
+                            </li>
+
+                            <!-- Modal de Confirmação de Exclusão -->
+                            <div class="modal fade" id="modalExcluirAnexo{{ anexo.id }}" tabindex="-1" aria-labelledby="modalExcluirAnexoLabel{{ anexo.id }}" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-danger text-white">
+                                            <h5 class="modal-title" id="modalExcluirAnexoLabel{{ anexo.id }}">
+                                                <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
+                                            </h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p><strong>Tem certeza que deseja excluir este anexo?</strong></p>
+                                            <p class="mb-0">
+                                                <i class="bi bi-file-earmark"></i> <strong>{{ anexo.nome_arquivo }}</strong><br>
+                                                <small class="text-muted">Esta ação não pode ser desfeita!</small>
+                                            </p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                <i class="bi bi-x-circle"></i> Cancelar
+                                            </button>
+                                            <form method="POST" action="{{ url_for('excluir_anexo', anexo_id=anexo.id) }}" style="display: inline;">
+                                                <button type="submit" class="btn btn-danger">
+                                                    <i class="bi bi-trash"></i> Sim, Excluir
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">Nenhum anexo encontrado para esta investigação.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Histórico -->
+        <div class="card mb-3">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Histórico</h5>
+            </div>
+            <div class="card-body">
+                {% if historico %}
+                    <div class="list-group">
+                        {% for item in historico %}
+                        <div class="list-group-item mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>
+                                    {% if item.tipo == 'edicao' %}
+                                        <i class="bi bi-pencil-square text-warning"></i>
+                                    {% elif item.tipo == 'diligencia' %}
+                                        <i class="bi bi-clipboard-check text-info"></i>
+                                    {% elif item.tipo == 'exclusao_anexo' %}
+                                        <i class="bi bi-trash text-danger"></i>
+                                    {% else %}
+                                        <i class="bi bi-info-circle text-secondary"></i>
+                                    {% endif %}
+                                    {{ item.usuario or 'Sistema' }}
+                                </strong>
+                                <small class="text-muted">
+                                    {% if item.data %}
+                                        {{ item.data.strftime('%d/%m/%Y %H:%M') }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <p class="mb-0 mt-2" style="white-space: pre-line;">{{ item.descricao }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Nenhum histórico registrado.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Direita -->
+    <div class="col-md-4">
+        <!-- Status -->
+        <div class="card mb-3">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0"><i class="bi bi-flag"></i> Status</h5>
+            </div>
+            <div class="card-body text-center">
+                {% if investigacao.status == 'Em Andamento' %}
+                    {% if esta_atrasado %}
+                        <h3><span class="badge bg-danger">ATRASADO</span></h3>
+                    {% else %}
+                        <h3><span class="badge bg-warning text-dark">{{ investigacao.status }}</span></h3>
+                    {% endif %}
+                {% elif investigacao.status == 'Concluída' %}
+                    <h3><span class="badge bg-success">{{ investigacao.status }}</span></h3>
+                {% else %}
+                    <h3><span class="badge bg-secondary">{{ investigacao.status or 'Indefinido' }}</span></h3>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Prazos -->
+        <div class="card mb-3">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-calendar"></i> Prazos</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Entrada PRFI:</strong><br>
+                    {% if investigacao.entrada_prfi %}
+                        {{ investigacao.entrada_prfi.strftime('%d/%m/%Y') }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <strong>Previsão Conclusão:</strong><br>
+                    {% if investigacao.previsao_conclusao %}
+                        {{ investigacao.previsao_conclusao.strftime('%d/%m/%Y') }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+
+                {% if dias_restantes is not none %}
+                <div class="mb-0">
+                    <strong>Dias Restantes:</strong><br>
+                    <h2 class="{% if dias_restantes < 0 %}text-danger{% elif dias_restantes <= 15 %}text-warning{% else %}text-success{% endif %}">
+                        {{ dias_restantes }}
+                    </h2>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Informações Adicionais -->
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-gear"></i> Detalhes</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <strong>Responsável:</strong><br>
+                    {{ investigacao.responsavel or '-' }}
+                </div>
+
+                <div class="mb-2">
+                    <strong>Complexidade:</strong><br>
+                    {% if investigacao.complexidade == 'Baixa' %}
+                        <span class="badge bg-success">{{ investigacao.complexidade }}</span>
+                    {% elif investigacao.complexidade == 'Média' %}
+                        <span class="badge bg-warning text-dark">{{ investigacao.complexidade }}</span>
+                    {% elif investigacao.complexidade == 'Alta' %}
+                        <span class="badge bg-danger">{{ investigacao.complexidade }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">-</span>
+                    {% endif %}
+                </div>
+
+                <div class="mb-2">
+                    <strong>Ano:</strong><br>
+                    {{ investigacao.ano or '-' }}
+                </div>
+
+                {% if investigacao.resultado_final %}
+                <div class="mb-0">
+                    <strong>Resultado:</strong><br>
+                    <span class="badge bg-success">{{ investigacao.resultado_final }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DA INVESTIGAÇÃO -->
+<div class="modal fade" id="modalExcluir" tabindex="-1" aria-labelledby="modalExcluirLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="modalExcluirLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">
+                    <strong>Atenção!</strong> Você está prestes a excluir permanentemente a investigação:
+                </p>
+                <div class="alert alert-warning">
+                    <strong>ID:</strong> #{{ investigacao.id }}<br>
+                    <strong>Processo GDOC:</strong> {{ investigacao.processo_gdoc or 'N/A' }}<br>
+                    <strong>Denunciado:</strong> {{ investigacao.nome_denunciado or 'N/A' }}
+                </div>
+                <p class="text-danger mb-0">
+                    <i class="bi bi-exclamation-circle"></i> 
+                    <strong>Esta ação NÃO pode ser desfeita!</strong> Todo o histórico, anexos e dados relacionados serão excluídos permanentemente.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <form method="POST" action="{{ url_for('excluir_investigacao', id=investigacao.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Sim, Excluir Permanentemente
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciar Usuários - Sistema PIP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-person-fill"></i> Gerenciar Usuários
+    </h1>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">
+        <i class="bi bi-plus-circle"></i> Novo Usuário
+    </button>
+</div>
+
+<!-- TABELA DE USUÁRIOS -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Usuário</th>
+                        <th>Nível</th>
+                        <th>Status</th>
+                        <th>Último Login</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td>{{ usuario.id }}</td>
+                        <td>{{ usuario.nome }}</td>
+                        <td><code>{{ usuario.username }}</code></td>
+                        <td>
+                            {% if usuario.nivel == 'admin' %}
+                                <span class="badge bg-danger">Administrador</span>
+                            {% elif usuario.nivel == 'investigador' %}
+                                <span class="badge bg-primary">Investigador</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Consulta</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if usuario.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inativo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if usuario.ultimo_login %}
+                                {{ usuario.ultimo_login.strftime('%d/%m/%Y %H:%M') }}
+                            {% else %}
+                                <span class="text-muted">Nunca</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#modalEditarUsuario{{ usuario.id }}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+
+                            {% if usuario.ativo %}
+                                <button class="btn btn-sm btn-danger" 
+                                        onclick="desativarUsuario({{ usuario.id }})">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            {% else %}
+                                <button class="btn btn-sm btn-success" 
+                                        onclick="ativarUsuario({{ usuario.id }})">
+                                    <i class="bi bi-check-circle"></i>
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    <!-- MODAL EDITAR USUÁRIO -->
+                    <div class="modal fade" id="modalEditarUsuario{{ usuario.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Editar Usuário</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="POST" action="/usuarios/{{ usuario.id }}/editar">
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Nome Completo</label>
+                                            <input type="text" class="form-control" name="nome" value="{{ usuario.nome }}" required>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Usuário (login)</label>
+                                            <input type="text" class="form-control" name="username" value="{{ usuario.username }}" required>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Nível de Acesso</label>
+                                            <select class="form-select" name="nivel" required>
+                                                <option value="admin" {% if usuario.nivel == 'admin' %}selected{% endif %}>Administrador</option>
+                                                <option value="investigador" {% if usuario.nivel == 'investigador' %}selected{% endif %}>Investigador</option>
+                                                <option value="consulta" {% if usuario.nivel == 'consulta' %}selected{% endif %}>Consulta</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Nova Senha (deixe em branco para não alterar)</label>
+                                            <input type="password" class="form-control" name="senha" placeholder="********">
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL NOVO USUÁRIO -->
+<div class="modal fade" id="modalNovoUsuario" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Novo Usuário</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/usuarios/novo">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nome Completo</label>
+                        <input type="text" class="form-control" name="nome" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Usuário (login)</label>
+                        <input type="text" class="form-control" name="username" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Senha</label>
+                        <input type="password" class="form-control" name="senha" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nível de Acesso</label>
+                        <select class="form-select" name="nivel" required>
+                            <option value="consulta">Consulta (Somente visualização)</option>
+                            <option value="investigador">Investigador (Editar e criar)</option>
+                            <option value="admin">Administrador (Acesso total)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar Usuário</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function ativarUsuario(id) {
+    if (confirm('Deseja realmente ATIVAR este usuário?')) {
+        window.location.href = '/usuarios/' + id + '/ativar';
+    }
+}
+
+function desativarUsuario(id) {
+    if (confirm('Deseja realmente DESATIVAR este usuário?')) {
+        window.location.href = '/usuarios/' + id + '/desativar';
+    }
+}
+</script>
+
+{% endblock %}

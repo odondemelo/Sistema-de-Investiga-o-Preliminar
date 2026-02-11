@@ -1,8 +1,74 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
 
+
+# ==================== MODELO DE USUÁRIO ====================
+class Usuario(db.Model):
+    __tablename__ = 'usuarios'
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    senha_hash = db.Column(db.String(255), nullable=False)
+    nome = db.Column(db.String(100), nullable=False)
+    nivel = db.Column(db.String(20), nullable=False, default='investigador')  # admin / investigador / visualizador
+    ativo = db.Column(db.Boolean, default=True)
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+    ultimo_login = db.Column(db.DateTime)
+
+    def __init__(self, username, senha, nome, nivel='investigador', ativo=True):
+        self.username = username
+        self.set_senha(senha)
+        self.nome = nome
+        self.nivel = nivel
+        self.ativo = ativo
+
+    def set_senha(self, senha):
+        """Criptografa a senha"""
+        self.senha_hash = generate_password_hash(senha)
+
+    def check_senha(self, senha):
+        """Verifica se a senha está correta"""
+        return check_password_hash(self.senha_hash, senha)
+
+    def registrar_login(self):
+        """Atualiza o último login"""
+        self.ultimo_login = datetime.utcnow()
+        db.session.commit()
+
+    @property
+    def eh_admin(self):
+        """Verifica se o usuário é administrador"""
+        return self.nivel == 'admin'
+
+    @property
+    def pode_editar(self):
+        """Verifica se o usuário pode editar investigações"""
+        return self.nivel in ['admin', 'investigador']
+
+    @property
+    def pode_visualizar(self):
+        """Qualquer usuário ativo pode visualizar"""
+        return self.ativo
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'nome': self.nome,
+            'nivel': self.nivel,
+            'ativo': self.ativo,
+            'criado_em': self.criado_em.isoformat() if self.criado_em else None,
+            'ultimo_login': self.ultimo_login.isoformat() if self.ultimo_login else None
+        }
+
+    def __repr__(self):
+        return f'<Usuario {self.username} ({self.nivel})>'
+
+
+# ==================== MODELO DE INVESTIGAÇÃO ====================
 class Investigacao(db.Model):
     __tablename__ = 'investigacoes'
 
@@ -80,6 +146,7 @@ class Investigacao(db.Model):
         }
 
 
+# ==================== MODELO DE HISTÓRICO ====================
 class HistoricoDiligencia(db.Model):
     __tablename__ = 'historico_diligencias'
 
@@ -88,7 +155,7 @@ class HistoricoDiligencia(db.Model):
     data = db.Column(db.DateTime, default=datetime.utcnow)
     usuario = db.Column(db.String(100))
     descricao = db.Column(db.Text, nullable=False)
-    tipo = db.Column(db.String(50))  # 'diligencia', 'atualizacao', 'status'
+    tipo = db.Column(db.String(50))  # 'diligencia', 'edicao', 'status'
 
     def to_dict(self):
         return {
@@ -98,3 +165,33 @@ class HistoricoDiligencia(db.Model):
             'descricao': self.descricao,
             'tipo': self.tipo
         }
+
+
+ # ==================== MODELO DE ANEXO ====================
+class Anexo(db.Model):
+    __tablename__ = 'anexos'
+
+    id = db.Column(db.Integer, primary_key=True)
+    investigacao_id = db.Column(db.Integer, db.ForeignKey('investigacoes.id'), nullable=False)
+    nome_arquivo = db.Column(db.String(255), nullable=False) # Nome original do arquivo
+    caminho_arquivo = db.Column(db.String(255), nullable=False) # Caminho onde o arquivo está salvo no servidor
+    tipo_mime = db.Column(db.String(100)) # Tipo MIME do arquivo (ex: application/pdf, image/jpeg)
+    tamanho_bytes = db.Column(db.Integer) # Tamanho do arquivo em bytes
+    data_upload = db.Column(db.DateTime, default=datetime.utcnow)
+    usuario_upload = db.Column(db.String(100)) # Quem fez o upload
+
+    # Relacionamento com Investigacao
+    investigacao = db.relationship('Investigacao', backref='anexos', lazy=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'investigacao_id': self.investigacao_id,
+            'nome_arquivo': self.nome_arquivo,
+            'caminho_arquivo': self.caminho_arquivo,
+            'tipo_mime': self.tipo_mime,
+            'tamanho_bytes': self.tamanho_bytes,
+            'data_upload': self.data_upload.isoformat() if self.data_upload else None,
+            'usuario_upload': self.usuario_upload
+        }
+       

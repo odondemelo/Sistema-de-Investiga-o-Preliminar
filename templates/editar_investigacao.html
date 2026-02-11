@@ -7,252 +7,379 @@
     <h1 class="h2">
         <i class="bi bi-pencil-square"></i> Editar Investigação #{{ investigacao.id }}
     </h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="{{ url_for('detalhes', id=investigacao.id) }}" class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> Cancelar
-        </a>
-    </div>
 </div>
 
 <form method="POST" action="{{ url_for('editar_investigacao', id=investigacao.id) }}">
-    <div class="row">
-        <!-- Coluna Esquerda -->
-        <div class="col-md-6">
-            <!-- Informações Básicas -->
-            <div class="card mb-3">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informações Básicas</h5>
+    <!-- ==================== INFORMAÇÕES BÁSICAS ==================== -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informações Básicas</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- Responsável (MOSTRA MAS NÃO PERMITE EDITAR) -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Responsável:</strong></label>
+                    <input type="text" class="form-control" value="{{ investigacao.responsavel }}" disabled>
+                    <input type="hidden" name="responsavel" value="{{ investigacao.responsavel }}">
+                    <small class="text-muted">Responsável não pode ser alterado</small>
                 </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Responsável <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="responsavel" value="{{ investigacao.responsavel }}" required>
-                    </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Processo GDOC <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="processo_gdoc" value="{{ investigacao.processo_gdoc }}" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Ano</label>
-                            <input type="number" class="form-control" name="ano" value="{{ investigacao.ano }}">
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Origem</label>
-                            <select class="form-select" name="origem">
-                                <option value="">Selecione...</option>
-                                <option value="Externo" {% if investigacao.origem == 'Externo' %}selected{% endif %}>Externo</option>
-                                <option value="Interno" {% if investigacao.origem == 'Interno' %}selected{% endif %}>Interno</option>
-                                <option value="Ouvidoria" {% if investigacao.origem == 'Ouvidoria' %}selected{% endif %}>Ouvidoria</option>
-                                <option value="CGU" {% if investigacao.origem == 'CGU' %}selected{% endif %}>CGU</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Canal</label>
-                            <select class="form-select" name="canal">
-                                <option value="">Selecione...</option>
-                                <option value="E-mail" {% if investigacao.canal == 'E-mail' %}selected{% endif %}>E-mail</option>
-                                <option value="Presencial" {% if investigacao.canal == 'Presencial' %}selected{% endif %}>Presencial</option>
-                                <option value="Telefone" {% if investigacao.canal == 'Telefone' %}selected{% endif %}>Telefone</option>
-                                <option value="Sistema" {% if investigacao.canal == 'Sistema' %}selected{% endif %}>Sistema</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Protocolo Origem</label>
-                        <input type="text" class="form-control" name="protocolo_origem" value="{{ investigacao.protocolo_origem }}">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Unidade de Origem</label>
-                        <input type="text" class="form-control" name="unidade_origem" value="{{ investigacao.unidade_origem }}">
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Admitida/Inadmitida</label>
-                            <select class="form-select" name="admitida_ou_inadmitida">
-                                <option value="">Selecione...</option>
-                                <option value="Admitida" {% if investigacao.admitida_ou_inadmitida == 'Admitida' %}selected{% endif %}>Admitida</option>
-                                <option value="Inadmitida" {% if investigacao.admitida_ou_inadmitida == 'Inadmitida' %}selected{% endif %}>Inadmitida</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Complexidade</label>
-                            <select class="form-select" name="complexidade">
-                                <option value="">Selecione...</option>
-                                <option value="Baixa" {% if investigacao.complexidade == 'Baixa' %}selected{% endif %}>Baixa</option>
-                                <option value="Média" {% if investigacao.complexidade == 'Média' %}selected{% endif %}>Média</option>
-                                <option value="Alta" {% if investigacao.complexidade == 'Alta' %}selected{% endif %}>Alta</option>
-                            </select>
-                        </div>
-                    </div>
+                <!-- Origem -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Origem:</strong> <span class="text-danger">*</span></label>
+                    <select class="form-select" name="origem" required>
+                        <option value="">Selecione...</option>
+                        <option value="Interno" {% if investigacao.origem == 'Interno' %}selected{% endif %}>Interno</option>
+                        <option value="Externo" {% if investigacao.origem == 'Externo' %}selected{% endif %}>Externo</option>
+                    </select>
                 </div>
-            </div>
 
-            <!-- Classificação -->
-            <div class="card mb-3">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="bi bi-tags"></i> Classificação</h5>
+                <!-- Canal -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Canal:</strong> <span class="text-danger">*</span></label>
+                    <select class="form-select" name="canal" required>
+                        <option value="">Selecione...</option>
+                        <option value="CGDF" {% if investigacao.canal == 'CGDF' %}selected{% endif %}>CGDF</option>
+                        <option value="TCDF" {% if investigacao.canal == 'TCDF' %}selected{% endif %}>TCDF</option>
+                        <option value="GDOC" {% if investigacao.canal == 'GDOC' %}selected{% endif %}>GDOC</option>
+                        <option value="E-mail" {% if investigacao.canal == 'E-mail' %}selected{% endif %}>E-mail</option>
+                        <option value="Ouvidoria" {% if investigacao.canal == 'Ouvidoria' %}selected{% endif %}>Ouvidoria</option>
+                        <option value="PRF" {% if investigacao.canal == 'PRF' %}selected{% endif %}>PRF</option>
+                        <option value="Outros" {% if investigacao.canal == 'Outros' %}selected{% endif %}>Outros</option>
+                    </select>
                 </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Classificação</label>
-                        <select class="form-select" name="classificacao">
-                            <option value="">Selecione...</option>
-                            <option value="Assédio Moral" {% if investigacao.classificacao == 'Assédio Moral' %}selected{% endif %}>Assédio Moral</option>
-                            <option value="Assédio Sexual" {% if investigacao.classificacao == 'Assédio Sexual' %}selected{% endif %}>Assédio Sexual</option>
-                            <option value="Transgressão Disciplinar" {% if investigacao.classificacao == 'Transgressão Disciplinar' %}selected{% endif %}>Transgressão Disciplinar</option>
-                            <option value="Irregularidade Administrativa" {% if investigacao.classificacao == 'Irregularidade Administrativa' %}selected{% endif %}>Irregularidade Administrativa</option>
-                            <option value="Corrupção" {% if investigacao.classificacao == 'Corrupção' %}selected{% endif %}>Corrupção</option>
-                            <option value="Outros" {% if investigacao.classificacao == 'Outros' %}selected{% endif %}>Outros</option>
-                        </select>
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Assunto</label>
-                        <select class="form-select" name="assunto">
-                            <option value="">Selecione...</option>
-                            <option value="Assédio Moral" {% if investigacao.assunto == 'Assédio Moral' %}selected{% endif %}>Assédio Moral</option>
-                            <option value="Assédio Sexual" {% if investigacao.assunto == 'Assédio Sexual' %}selected{% endif %}>Assédio Sexual</option>
-                            <option value="Desvio de Função" {% if investigacao.assunto == 'Desvio de Função' %}selected{% endif %}>Desvio de Função</option>
-                            <option value="Nepotismo" {% if investigacao.assunto == 'Nepotismo' %}selected{% endif %}>Nepotismo</option>
-                            <option value="Fraude" {% if investigacao.assunto == 'Fraude' %}selected{% endif %}>Fraude</option>
-                            <option value="Outros" {% if investigacao.assunto == 'Outros' %}selected{% endif %}>Outros</option>
-                        </select>
-                    </div>
+                <!-- Protocolo Origem -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Protocolo Origem:</strong></label>
+                    <input type="text" class="form-control" name="protocolo_origem" value="{{ investigacao.protocolo_origem or '' }}" placeholder="Digite o protocolo de origem">
+                </div>
+
+                <!-- Admitida/Inadmitida -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Admitida/Inadmitida:</strong></label>
+                    <select class="form-select" name="admitida_ou_inadmitida">
+                        <option value="">Selecione...</option>
+                        <option value="Admitida" {% if investigacao.admitida_ou_inadmitida == 'Admitida' %}selected{% endif %}>Admitida</option>
+                        <option value="Inadmitida" {% if investigacao.admitida_ou_inadmitida == 'Inadmitida' %}selected{% endif %}>Inadmitida</option>
+                    </select>
+                </div>
+
+                <!-- Unidade de Origem -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Unidade de Origem:</strong></label>
+                    <input type="text" class="form-control" name="unidade_origem" value="{{ investigacao.unidade_origem or '' }}" placeholder="Digite a unidade de origem">
+                </div>
+
+                <!-- Classificação -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Classificação:</strong> <span class="text-danger">*</span></label>
+                    <select class="form-select" name="classificacao" id="classificacao" required>
+                        <option value="">Selecione...</option>
+                        <option value="Transgressão Disciplinar" {% if investigacao.classificacao == 'Transgressão Disciplinar' %}selected{% endif %}>Transgressão Disciplinar</option>
+                        <option value="Licitações e Contratos" {% if investigacao.classificacao == 'Licitações e Contratos' %}selected{% endif %}>Licitações e Contratos</option>
+                        <option value="Dano ao Erário" {% if investigacao.classificacao == 'Dano ao Erário' %}selected{% endif %}>Dano ao Erário</option>
+                        <option value="Infração Ambiental" {% if investigacao.classificacao == 'Infração Ambiental' %}selected{% endif %}>Infração Ambiental</option>
+                        <option value="Práticas Operacionais e Comerciais" {% if investigacao.classificacao == 'Práticas Operacionais e Comerciais' %}selected{% endif %}>Práticas Operacionais e Comerciais</option>
+                    </select>
+                </div>
+
+                <!-- Assunto (DINÂMICO) -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Assunto:</strong> <span class="text-danger">*</span></label>
+                    <select class="form-select" name="assunto" id="assunto" required>
+                        <option value="">Selecione a classificação primeiro...</option>
+                    </select>
+                </div>
+
+                <!-- Processo GDOC -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Processo GDOC:</strong></label>
+                    <input type="text" class="form-control" name="processo_gdoc" value="{{ investigacao.processo_gdoc or '' }}" placeholder="Ex: PROC-001/2025">
+                </div>
+
+                <!-- Ano -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Ano:</strong></label>
+                    <input type="number" class="form-control" name="ano" value="{{ investigacao.ano or datetime.now().year }}" min="2020" max="2030">
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Coluna Direita -->
-        <div class="col-md-6">
-            <!-- Denunciante e Denunciado -->
-            <div class="card mb-3">
-                <div class="card-header bg-warning">
-                    <h5 class="mb-0"><i class="bi bi-people"></i> Envolvidos</h5>
+    <!-- ==================== ENVOLVIDOS ==================== -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-people"></i> Envolvidos</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- Denunciante -->
+                <div class="col-12 mb-3">
+                    <label class="form-label"><strong>Denunciante(s):</strong></label>
+                    <textarea class="form-control" name="denunciante" rows="2" placeholder="Nome(s) do(s) denunciante(s)">{{ investigacao.denunciante or '' }}</textarea>
                 </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Denunciante(s)</label>
-                        <input type="text" class="form-control" name="denunciante" value="{{ investigacao.denunciante }}">
-                    </div>
 
-                    <hr>
-
-                    <div class="mb-3">
-                        <label class="form-label">Nome do Denunciado</label>
-                        <input type="text" class="form-control" name="nome_denunciado" value="{{ investigacao.nome_denunciado }}">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Matrícula do Denunciado</label>
-                        <input type="text" class="form-control" name="matricula_denunciado" value="{{ investigacao.matricula_denunciado }}">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Setor</label>
-                        <input type="text" class="form-control" name="setor" value="{{ investigacao.setor }}">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Diretoria</label>
-                        <input type="text" class="form-control" name="diretoria" value="{{ investigacao.diretoria }}">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Vínculo</label>
-                        <select class="form-select" name="vinculo">
-                            <option value="">Selecione...</option>
-                            <option value="Efetivo" {% if investigacao.vinculo == 'Efetivo' %}selected{% endif %}>Efetivo</option>
-                            <option value="Comissionado" {% if investigacao.vinculo == 'Comissionado' %}selected{% endif %}>Comissionado</option>
-                            <option value="Terceirizado" {% if investigacao.vinculo == 'Terceirizado' %}selected{% endif %}>Terceirizado</option>
-                            <option value="Estagiário" {% if investigacao.vinculo == 'Estagiário' %}selected{% endif %}>Estagiário</option>
-                        </select>
-                    </div>
+                <!-- Nome Denunciado -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Nome Denunciado:</strong></label>
+                    <input type="text" class="form-control" name="nome_denunciado" value="{{ investigacao.nome_denunciado or '' }}" placeholder="Nome do denunciado">
                 </div>
-            </div>
 
-            <!-- Prazos -->
-            <div class="card mb-3">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0"><i class="bi bi-calendar"></i> Prazos</h5>
+                <!-- Matrícula Denunciado -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Matrícula Denunciado:</strong></label>
+                    <input type="text" class="form-control" name="matricula_denunciado" value="{{ investigacao.matricula_denunciado or '' }}" placeholder="Matrícula do denunciado">
                 </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Entrada PRFI</label>
-                        <input type="date" class="form-control" name="entrada_prfi" 
-                               value="{% if investigacao.entrada_prfi %}{{ investigacao.entrada_prfi.strftime('%Y-%m-%d') }}{% endif %}">
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Previsão de Conclusão</label>
-                        <input type="date" class="form-control" name="previsao_conclusao"
-                               value="{% if investigacao.previsao_conclusao %}{{ investigacao.previsao_conclusao.strftime('%Y-%m-%d') }}{% endif %}">
-                    </div>
+                <!-- Setor -->
+                <div class="col-md-4 mb-3">
+                    <label class="form-label"><strong>Setor:</strong></label>
+                    <input type="text" class="form-control" name="setor" value="{{ investigacao.setor or '' }}" placeholder="Setor do denunciado">
+                </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" name="status">
-                            <option value="Em Andamento" {% if investigacao.status == 'Em Andamento' %}selected{% endif %}>Em Andamento</option>
-                            <option value="Concluída" {% if investigacao.status == 'Concluída' %}selected{% endif %}>Concluída</option>
-                            <option value="Arquivada" {% if investigacao.status == 'Arquivada' %}selected{% endif %}>Arquivada</option>
-                            <option value="Suspensa" {% if investigacao.status == 'Suspensa' %}selected{% endif %}>Suspensa</option>
-                        </select>
-                    </div>
+                <!-- Diretoria -->
+                <div class="col-md-4 mb-3">
+                    <label class="form-label"><strong>Diretoria:</strong></label>
+                    <select class="form-select" name="diretoria">
+                        <option value="">Selecione...</option>
+                        <option value="Diretoria Financeira e Comercial" {% if investigacao.diretoria == 'Diretoria Financeira e Comercial' %}selected{% endif %}>Diretoria Financeira e Comercial</option>
+                        <option value="Diretoria de Suporte ao Negócio" {% if investigacao.diretoria == 'Diretoria de Suporte ao Negócio' %}selected{% endif %}>Diretoria de Suporte ao Negócio</option>
+                        <option value="Diretoria de Regulação" {% if investigacao.diretoria == 'Diretoria de Regulação' %}selected{% endif %}>Diretoria de Regulação</option>
+                        <option value="Diretoria Jurídica" {% if investigacao.diretoria == 'Diretoria Jurídica' %}selected{% endif %}>Diretoria Jurídica</option>
+                        <option value="Diretoria de Operação e Manutenção" {% if investigacao.diretoria == 'Diretoria de Operação e Manutenção' %}selected{% endif %}>Diretoria de Operação e Manutenção</option>
+                        <option value="Presidência" {% if investigacao.diretoria == 'Presidência' %}selected{% endif %}>Presidência</option>
+                    </select>
+                </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Resultado Final</label>
-                        <input type="text" class="form-control" name="resultado_final" value="{{ investigacao.resultado_final }}">
-                    </div>
+                <!-- Vínculo -->
+                <div class="col-md-4 mb-3">
+                    <label class="form-label"><strong>Vínculo:</strong></label>
+                    <select class="form-select" name="vinculo">
+                        <option value="">Selecione...</option>
+                        <option value="Efetivo" {% if investigacao.vinculo == 'Efetivo' %}selected{% endif %}>Efetivo</option>
+                        <option value="Comissionado" {% if investigacao.vinculo == 'Comissionado' %}selected{% endif %}>Comissionado</option>
+                        <option value="Terceirizado" {% if investigacao.vinculo == 'Terceirizado' %}selected{% endif %}>Terceirizado</option>
+                        <option value="Estagiário" {% if investigacao.vinculo == 'Estagiário' %}selected{% endif %}>Estagiário</option>
+                        <option value="Outro" {% if investigacao.vinculo == 'Outro' %}selected{% endif %}>Outro</option>
+                    </select>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Descrições (Largura Total) -->
-        <div class="col-12">
-            <div class="card mb-3">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="bi bi-file-text"></i> Descrições</h5>
+    <!-- ==================== OBJETO E DILIGÊNCIAS ==================== -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="bi bi-file-text"></i> Objeto e Diligências</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- Objeto/Especificação -->
+                <div class="col-12 mb-3">
+                    <label class="form-label"><strong>Objeto / Especificação:</strong></label>
+                    <textarea class="form-control" name="objeto_especificacao" rows="4" placeholder="Descreva o objeto da investigação...">{{ investigacao.objeto_especificacao or '' }}</textarea>
                 </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Objeto / Especificação</label>
-                        <textarea class="form-control" name="objeto_especificacao" rows="4">{{ investigacao.objeto_especificacao }}</textarea>
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Diligências</label>
-                        <textarea class="form-control" name="diligencias" rows="4">{{ investigacao.diligencias }}</textarea>
-                    </div>
+                <!-- Diligências -->
+                <div class="col-12 mb-3">
+                    <label class="form-label"><strong>Diligências:</strong></label>
+                    <textarea class="form-control" name="diligencias" rows="4" placeholder="Descreva as diligências realizadas...">{{ investigacao.diligencias or '' }}</textarea>
+                    <small class="text-muted">Nota: Para adicionar novas diligências, use o formulário na página de detalhes.</small>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Justificativa</label>
-                        <textarea class="form-control" name="justificativa" rows="3">{{ investigacao.justificativa }}</textarea>
-                    </div>
+    <!-- ==================== PRAZOS E STATUS ==================== -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Prazos e Status</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- Complexidade -->
+                <div class="col-md-4 mb-3">
+                    <label class="form-label"><strong>Complexidade:</strong></label>
+                    <select class="form-select" name="complexidade">
+                        <option value="">Selecione...</option>
+                        <option value="Baixa" {% if investigacao.complexidade == 'Baixa' %}selected{% endif %}>Baixa</option>
+                        <option value="Média" {% if investigacao.complexidade == 'Média' %}selected{% endif %}>Média</option>
+                        <option value="Alta" {% if investigacao.complexidade == 'Alta' %}selected{% endif %}>Alta</option>
+                    </select>
+                </div>
+
+                <!-- Entrada PRFI -->
+                <div class="col-md-4 mb-3">
+                    <label class="form-label"><strong>Entrada PRFI:</strong></label>
+                    <input type="date" class="form-control" name="entrada_prfi" id="entrada_prfi" value="{{ investigacao.entrada_prfi.strftime('%Y-%m-%d') if investigacao.entrada_prfi else '' }}">
+                </div>
+
+                <!-- Previsão Conclusão -->
+                <div class="col-md-4 mb-3">
+                    <label class="form-label"><strong>Previsão Conclusão:</strong></label>
+                    <input type="date" class="form-control" name="previsao_conclusao" id="previsao_conclusao" value="{{ investigacao.previsao_conclusao.strftime('%Y-%m-%d') if investigacao.previsao_conclusao else '' }}">
+                    <small class="text-muted">Calculado automaticamente (120 dias após entrada PRFI)</small>
+                </div>
+
+                <!-- Status -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Status:</strong></label>
+                    <select class="form-select" name="status">
+                        <option value="Em Fila" {% if investigacao.status == 'Em Fila' %}selected{% endif %}>Em Fila</option>
+                        <option value="Em Andamento" {% if investigacao.status == 'Em Andamento' %}selected{% endif %}>Em Andamento</option>
+                        <option value="Concluída" {% if investigacao.status == 'Concluída' %}selected{% endif %}>Concluída</option>
+                    </select>
+                </div>
+
+                <!-- Resultado Final -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Resultado Final:</strong></label>
+                    <select class="form-select" name="resultado_final">
+                        <option value="">Selecione...</option>
+                        <option value="Arquivado" {% if investigacao.resultado_final == 'Arquivado' %}selected{% endif %}>Arquivado</option>
+                        <option value="PAD" {% if investigacao.resultado_final == 'PAD' %}selected{% endif %}>PAD</option>
+                        <option value="TAC" {% if investigacao.resultado_final == 'TAC' %}selected{% endif %}>TAC</option>
+                        <option value="TCE" {% if investigacao.resultado_final == 'TCE' %}selected{% endif %}>TCE</option>
+                        <option value="CECC" {% if investigacao.resultado_final == 'CECC' %}selected{% endif %}>CECC</option>
+                        <option value="CCMC" {% if investigacao.resultado_final == 'CCMC' %}selected{% endif %}>CCMC</option>
+                        <option value="TCR" {% if investigacao.resultado_final == 'TCR' %}selected{% endif %}>TCR</option>
+                    </select>
+                </div>
+
+                <!-- Justificativa -->
+                <div class="col-12 mb-3">
+                    <label class="form-label"><strong>Justificativa:</strong></label>
+                    <textarea class="form-control" name="justificativa" rows="3" placeholder="Justificativa (se necessário)">{{ investigacao.justificativa or '' }}</textarea>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Botões -->
-    <div class="row">
-        <div class="col-12">
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
-                <a href="{{ url_for('detalhes', id=investigacao.id) }}" class="btn btn-secondary">
-                    <i class="bi bi-x-circle"></i> Cancelar
-                </a>
-                <button type="submit" class="btn btn-success">
-                    <i class="bi bi-check-circle"></i> Salvar Alterações
-                </button>
-            </div>
-        </div>
+    <div class="d-flex justify-content-between mb-5">
+        <a href="{{ url_for('detalhes', id=investigacao.id) }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Cancelar
+        </a>
+        <button type="submit" class="btn btn-success btn-lg">
+            <i class="bi bi-check-circle"></i> Salvar Alterações
+        </button>
     </div>
 </form>
+
+<!-- ==================== JAVASCRIPT PARA ASSUNTO DINÂMICO E CÁLCULO DE PRAZO ==================== -->
+<script>
+// Mapeamento de Classificação -> Assuntos
+const assuntosPorClassificacao = {
+    "Transgressão Disciplinar": [
+        "Falta Injustificada",
+        "Tratamento Inadequado de Ponto",
+        "Fraude no Ponto Eletrônico",
+        "Insubordinação",
+        "Desídia",
+        "Assédio Moral",
+        "Assédio Sexual",
+        "Favorecimento pessoal",
+        "Favorecimento terceiros",
+        "Corrupção",
+        "Enriquecimento Ilícito",
+        "Condução de Veículos",
+        "Nepotismo",
+        "Vazamento de Informações",
+        "Infração ética",
+        "Falta de Urbanidade",
+        "Abuso de Autoridade",
+        "Falta de Zelo",
+        "Conduta Discriminatória",
+        "Conflito de Interesses",
+        "Conduta Irregular",
+        "Desvio de Função",
+        "Null"
+    ],
+    "Dano ao Erário": [
+        "Dano ao Patrimônio",
+        "Desvio de Material",
+        "Pagamento Indevido",
+        "Extravio bem Patrimonial",
+        "Mau uso de Bens",
+        "Furto de bem Patrimonial",
+        "Multas",
+        "Enriquecimento Ilícito",
+        "Null"
+    ],
+    "Licitações e Contratos": [
+        "Fraude em Licitação",
+        "Contratação Emergencial",
+        "Fiscalização de Contrato",
+        "Favorecimento em Licitação",
+        "Irregularidades em Licitação",
+        "Reconhecimento de Dívida",
+        "Null"
+    ],
+    "Infração Ambiental": [
+        "Dano ambiental"
+    ],
+    "Práticas Operacionais e Comerciais": [
+        "Execução inadequada de Serviço",
+        "Má conduta no Atendimento",
+        "Negligência Operacional",
+        "Null"
+    ]
+};
+
+// Valor atual do assunto (para manter selecionado ao carregar)
+const assuntoAtual = "{{ investigacao.assunto or '' }}";
+
+// Função para atualizar assuntos
+function atualizarAssuntos() {
+    const classificacao = document.getElementById('classificacao').value;
+    const assuntoSelect = document.getElementById('assunto');
+
+    // Limpar opções anteriores
+    assuntoSelect.innerHTML = '<option value="">Selecione...</option>';
+
+    // Adicionar novas opções
+    if (classificacao && assuntosPorClassificacao[classificacao]) {
+        assuntosPorClassificacao[classificacao].forEach(function(assunto) {
+            const option = document.createElement('option');
+            option.value = assunto;
+            option.textContent = assunto;
+
+            // Manter selecionado se for o assunto atual
+            if (assunto === assuntoAtual) {
+                option.selected = true;
+            }
+
+            assuntoSelect.appendChild(option);
+        });
+    }
+}
+
+// Atualizar assuntos quando classificação mudar
+document.getElementById('classificacao').addEventListener('change', atualizarAssuntos);
+
+// Carregar assuntos ao abrir a página
+document.addEventListener('DOMContentLoaded', function() {
+    atualizarAssuntos();
+});
+
+// Calcular previsão de conclusão (120 dias após entrada PRFI)
+document.getElementById('entrada_prfi').addEventListener('change', function() {
+    const entradaData = new Date(this.value);
+
+    if (!isNaN(entradaData.getTime())) {
+        // Adicionar 120 dias
+        entradaData.setDate(entradaData.getDate() + 120);
+
+        // Formatar para YYYY-MM-DD
+        const ano = entradaData.getFullYear();
+        const mes = String(entradaData.getMonth() + 1).padStart(2, '0');
+        const dia = String(entradaData.getDate()).padStart(2, '0');
+
+        document.getElementById('previsao_conclusao').value = `${ano}-${mes}-${dia}`;
+    }
+});
+</script>
 
 {% endblock %}

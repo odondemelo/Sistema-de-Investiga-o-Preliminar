@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios - Sistema PIP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-graph-up"></i> Relatórios e Dashboards
+    </h1>
+</div>
+
+<!-- INDICADORES -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-body text-center">
+                <h2>{{ total }}</h2>
+                <p class="mb-0">Total de Investigações</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-white bg-danger mb-3">
+            <div class="card-body text-center">
+                <h2>{{ atrasadas }}</h2>
+                <p class="mb-0">Atrasadas</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-white bg-warning mb-3">
+            <div class="card-body text-center">
+                <h2>{{ proximas_prazo }}</h2>
+                <p class="mb-0">Próximas do Prazo (15 dias)</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-body text-center">
+                <h2>{{ status_counts.get('Concluída', 0) }}</h2>
+                <p class="mb-0">Concluídas</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- GRÁFICOS -->
+<div class="row">
+    <!-- GRÁFICO STATUS -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-pie-chart"></i> Investigações por Status
+            </div>
+            <div class="card-body">
+                <canvas id="graficoStatus"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRÁFICO RESPONSÁVEL -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-person-fill"></i> Investigações por Responsável
+            </div>
+            <div class="card-body">
+                <canvas id="graficoResponsavel"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRÁFICO ASSUNTO -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-tags-fill"></i> Investigações por Assunto
+            </div>
+            <div class="card-body">
+                <canvas id="graficoAssunto"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRÁFICO ANO -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-warning text-white">
+                <i class="bi bi-calendar-fill"></i> Investigações por Ano
+            </div>
+            <div class="card-body">
+                <canvas id="graficoAno"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TABELAS -->
+<div class="row mt-4">
+    <!-- ATRASADAS -->
+    <div class="col-md-6 mb-4">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <i class="bi bi-exclamation-triangle-fill"></i> Investigações Atrasadas ({{ atrasadas }})
+            </div>
+            <div class="card-body">
+                {% if lista_atrasadas %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Processo</th>
+                                <th>Responsável</th>
+                                <th>Previsão</th>
+                                <th>Dias Atrasado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in lista_atrasadas %}
+                            <tr>
+                                <td><a href="{{ url_for('detalhes', id=item.investigacao.id) }}">#{{ item.investigacao.id }}</a></td>
+                                <td>{{ item.investigacao.processo_gdoc }}</td>
+                                <td>{{ item.investigacao.responsavel }}</td>
+                                <td>{{ item.investigacao.previsao_conclusao|date }}</td>
+                                <td><span class="badge bg-danger">{{ item.dias_atrasado }} dias</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">Nenhuma investigação atrasada! 🎉</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- PRÓXIMAS DO PRAZO -->
+    <div class="col-md-6 mb-4">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <i class="bi bi-clock-fill"></i> Próximas do Prazo ({{ proximas_prazo }})
+            </div>
+            <div class="card-body">
+                {% if lista_proximas %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Processo</th>
+                                <th>Responsável</th>
+                                <th>Previsão</th>
+                                <th>Dias Restantes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in lista_proximas %}
+                            <tr>
+                                <td><a href="{{ url_for('detalhes', id=item.investigacao.id) }}">#{{ item.investigacao.id }}</a></td>
+                                <td>{{ item.investigacao.processo_gdoc }}</td>
+                                <td>{{ item.investigacao.responsavel }}</td>
+                                <td>{{ item.investigacao.previsao_conclusao|date }}</td>
+                                <td><span class="badge bg-warning text-dark">{{ item.dias_restantes }} dias</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">Nenhuma investigação próxima do prazo.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+// Gráfico de Status
+const ctxStatus = document.getElementById('graficoStatus').getContext('2d');
+new Chart(ctxStatus, {
+    type: 'pie',
+    data: {
+        labels: {{ status_counts.keys()|list|tojson }},
+        datasets: [{
+            data: {{ status_counts.values()|list|tojson }},
+            backgroundColor: [
+                '#ffc107',
+                '#28a745',
+                '#dc3545',
+                '#6c757d',
+                '#17a2b8'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Gráfico de Responsável
+const ctxResponsavel = document.getElementById('graficoResponsavel').getContext('2d');
+new Chart(ctxResponsavel, {
+    type: 'bar',
+    data: {
+        labels: {{ responsavel_counts.keys()|list|tojson }},
+        datasets: [{
+            label: 'Investigações',
+            data: {{ responsavel_counts.values()|list|tojson }},
+            backgroundColor: '#28a745'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Gráfico de Assunto
+const ctxAssunto = document.getElementById('graficoAssunto').getContext('2d');
+new Chart(ctxAssunto, {
+    type: 'bar',
+    data: {
+        labels: {{ assunto_counts.keys()|list|tojson }},
+        datasets: [{
+            label: 'Investigações',
+            data: {{ assunto_counts.values()|list|tojson }},
+            backgroundColor: '#17a2b8'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Gráfico de Ano
+const ctxAno = document.getElementById('graficoAno').getContext('2d');
+new Chart(ctxAno, {
+    type: 'bar',
+    data: {
+        labels: {{ ano_counts.keys()|list|tojson }},
+        datasets: [{
+            label: 'Investigações',
+            data: {{ ano_counts.values()|list|tojson }},
+            backgroundColor: '#ffc107'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+
+{% endblock %}

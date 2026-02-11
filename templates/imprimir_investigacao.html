@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ficha de Investigação #{{ investigacao.id }} - Impressão</title>
+    <!-- Bootstrap CSS para estilização básica -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        /* Estilos para tela */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        .container-print {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        .header-print {
+            text-align: center;
+            border-bottom: 3px solid #0056b3;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header-print h1 {
+            color: #0056b3;
+            margin-bottom: 10px;
+        }
+        .header-print p {
+            color: #6c757d;
+            margin: 0;
+        }
+        .section-title {
+            background-color: #0056b3;
+            color: white;
+            padding: 10px 15px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .info-row {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #0056b3;
+        }
+        .info-row strong {
+            color: #0056b3;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .badge-custom {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        .badge-em-andamento { background-color: #ffc107; color: #000; }
+        .badge-concluida { background-color: #28a745; color: #fff; }
+        .badge-arquivada { background-color: #6c757d; color: #fff; }
+        .badge-atrasado { background-color: #dc3545; color: #fff; }
+        .badge-baixa { background-color: #28a745; color: #fff; }
+        .badge-media { background-color: #ffc107; color: #000; }
+        .badge-alta { background-color: #dc3545; color: #fff; }
+
+        .historico-item {
+            border-left: 3px solid #dee2e6;
+            padding-left: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed #dee2e6;
+        }
+        .historico-item:last-child {
+            border-bottom: none;
+        }
+        .historico-item .data-usuario {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        .historico-item .descricao {
+            white-space: pre-line;
+        }
+
+        .anexo-item {
+            padding: 8px 12px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .btn-print {
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+
+        /* Estilos específicos para impressão */
+        @media print {
+            body {
+                margin: 0;
+                background-color: white;
+            }
+            .container-print {
+                max-width: 100%;
+                box-shadow: none;
+                padding: 0;
+                border-radius: 0;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .section-title {
+                background-color: #0056b3 !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .info-row {
+                background-color: #f8f9fa !important;
+                border-left: 4px solid #0056b3 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .badge-custom {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .badge-em-andamento { background-color: #ffc107 !important; }
+            .badge-concluida { background-color: #28a745 !important; }
+            .badge-arquivada { background-color: #6c757d !important; }
+            .badge-atrasado { background-color: #dc3545 !important; }
+            .badge-baixa { background-color: #28a745 !important; }
+            .badge-media { background-color: #ffc107 !important; }
+            .badge-alta { background-color: #dc3545 !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-print">
+        <!-- Cabeçalho -->
+        <div class="header-print">
+            <h1><i class="bi bi-file-earmark-text"></i> Ficha de Investigação #{{ investigacao.id }}</h1>
+            <p>Gerado em: {{ datetime.now().strftime('%d/%m/%Y às %H:%M') }}</p>
+        </div>
+
+        <!-- Botões de Ação (não aparecem na impressão) -->
+        <div class="text-center no-print btn-print">
+            <button onclick="window.print()" class="btn btn-primary btn-lg me-2">
+                <i class="bi bi-printer"></i> Imprimir
+            </button>
+            <a href="{{ url_for('detalhes', id=investigacao.id) }}" class="btn btn-secondary btn-lg">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+
+        <!-- Informações Gerais -->
+        <h2 class="section-title"><i class="bi bi-info-circle"></i> Informações Gerais</h2>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="info-row">
+                    <strong>Processo GDOC:</strong>
+                    {{ investigacao.processo_gdoc or '-' }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <strong>Protocolo Origem:</strong>
+                    {{ investigacao.protocolo_origem or '-' }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <strong>Origem / Canal:</strong>
+                    {{ investigacao.origem or '-' }} / {{ investigacao.canal or '-' }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <strong>Unidade de Origem:</strong>
+                    {{ investigacao.unidade_origem or '-' }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <strong>Classificação:</strong>
+                    <span class="badge-custom badge-em-andamento">{{ investigacao.classificacao or '-' }}</span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <strong>Assunto:</strong>
+                    <span class="badge-custom badge-em-andamento">{{ investigacao.assunto or '-' }}</span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <strong>Ano:</strong>
+                    {{ investigacao.ano or '-' }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <strong>Responsável:</strong>
+                    {{ investigacao.responsavel or '-' }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Denunciante e Denunciado -->
+        <h2 class="section-title"><i class="bi bi-people"></i> Denunciante e Denunciado</h2>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="info-row">
+                    <strong>Denunciante(s):</strong>
+                    {{ investigacao.denunciante or '-' }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <strong>Nome Denunciado:</strong>
+                    {{ investigacao.nome_denunciado or '-' }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <strong>Matrícula Denunciado:</strong>
+                    {{ investigacao.matricula_denunciado or '-' }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <strong>Setor:</strong>
+                    {{ investigacao.setor or '-' }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <strong>Diretoria:</strong>
+                    {{ investigacao.diretoria or '-' }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <strong>Vínculo:</strong>
+                    {{ investigacao.vinculo or '-' }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Objeto e Especificação -->
+        <h2 class="section-title"><i class="bi bi-file-text"></i> Objeto e Especificação</h2>
+        <div class="info-row">
+            <p style="white-space: pre-line;">{{ investigacao.objeto_especificacao or 'Não informado.' }}</p>
+        </div>
+
+        <!-- Status e Prazos -->
+        <h2 class="section-title"><i class="bi bi-calendar-check"></i> Status e Prazos</h2>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="info-row">
+                    <strong>Status Atual:</strong>
+                    {% if investigacao.status == 'Em Andamento' %}
+                        <span class="badge-custom badge-em-andamento">{{ investigacao.status }}</span>
+                    {% elif investigacao.status == 'Concluída' %}
+                        <span class="badge-custom badge-concluida">{{ investigacao.status }}</span>
+                    {% elif investigacao.status == 'Arquivada' %}
+                        <span class="badge-custom badge-arquivada">{{ investigacao.status }}</span>
+                    {% else %}
+                        <span class="badge-custom">{{ investigacao.status or '-' }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="info-row">
+                    <strong>Complexidade:</strong>
+                    {% if investigacao.complexidade == 'Baixa' %}
+                        <span class="badge-custom badge-baixa">{{ investigacao.complexidade }}</span>
+                    {% elif investigacao.complexidade == 'Média' %}
+                        <span class="badge-custom badge-media">{{ investigacao.complexidade }}</span>
+                    {% elif investigacao.complexidade == 'Alta' %}
+                        <span class="badge-custom badge-alta">{{ investigacao.complexidade }}</span>
+                    {% else %}
+                        <span class="badge-custom">{{ investigacao.complexidade or '-' }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="info-row">
+                    <strong>Entrada PRFI:</strong>
+                    {{ investigacao.entrada_prfi.strftime('%d/%m/%Y') if investigacao.entrada_prfi else '-' }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <strong>Previsão Conclusão:</strong>
+                    {{ investigacao.previsao_conclusao.strftime('%d/%m/%Y') if investigacao.previsao_conclusao else '-' }}
+                </div>
+            </div>
+            {% if investigacao.dias_restantes is not none %}
+            <div class="col-md-6">
+                <div class="info-row">
+                    <strong>Dias Restantes:</strong>
+                    {% if investigacao.dias_restantes < 0 %}
+                        <span class="badge-custom badge-atrasado">{{ investigacao.dias_restantes }} (ATRASADO)</span>
+                    {% elif investigacao.dias_restantes <= 15 %}
+                        <span class="badge-custom badge-media">{{ investigacao.dias_restantes }}</span>
+                    {% else %}
+                        <span class="badge-custom badge-baixa">{{ investigacao.dias_restantes }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            {% if investigacao.justificativa %}
+            <div class="col-12">
+                <div class="info-row">
+                    <strong>Justificativa:</strong>
+                    <p style="white-space: pre-line;">{{ investigacao.justificativa }}</p>
+                </div>
+            </div>
+            {% endif %}
+            {% if investigacao.resultado_final %}
+            <div class="col-12">
+                <div class="info-row">
+                    <strong>Resultado Final:</strong>
+                    <span class="badge-custom badge-concluida">{{ investigacao.resultado_final }}</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Diligências -->
+        <h2 class="section-title"><i class="bi bi-list-check"></i> Diligências</h2>
+        {% if investigacao.diligencias %}
+            <div class="info-row">
+                <p style="white-space: pre-line;">{{ investigacao.diligencias }}</p>
+            </div>
+        {% else %}
+            <p class="text-muted">Nenhuma diligência registrada.</p>
+        {% endif %}
+
+        <!-- Anexos -->
+        <h2 class="section-title"><i class="bi bi-paperclip"></i> Anexos</h2>
+        {% if anexos %}
+            {% for anexo in anexos %}
+            <div class="anexo-item">
+                <i class="bi bi-file-earmark"></i>
+                <strong>{{ anexo.nome_arquivo }}</strong>
+                <small class="text-muted">
+                    ({{ (anexo.tamanho_bytes / 1024)|round(2) }} KB) - 
+                    Upload por {{ anexo.usuario_upload or 'Sistema' }} em {{ anexo.data_upload.strftime('%d/%m/%Y %H:%M') }}
+                </small>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted">Nenhum anexo disponível.</p>
+        {% endif %}
+
+        <!-- Histórico Completo -->
+        <h2 class="section-title"><i class="bi bi-clock-history"></i> Histórico Completo</h2>
+        {% if historico %}
+            {% for item in historico %}
+            <div class="historico-item">
+                <div class="data-usuario">
+                    <strong>
+                        {% if item.tipo == 'criacao' %}
+                            <i class="bi bi-plus-circle text-success"></i>
+                        {% elif item.tipo == 'edicao' %}
+                            <i class="bi bi-pencil text-warning"></i>
+                        {% elif item.tipo == 'diligencia' %}
+                            <i class="bi bi-clipboard-check text-info"></i>
+                        {% else %}
+                            <i class="bi bi-info-circle text-secondary"></i>
+                        {% endif %}
+                        {{ item.usuario or 'Sistema' }}
+                    </strong>
+                    - 
+                    {{ item.data.strftime('%d/%m/%Y %H:%M') if item.data else '-' }}
+                </div>
+                <div class="descricao">{{ item.descricao }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted">Nenhum histórico registrado.</p>
+        {% endif %}
+
+        <!-- Botões de Ação (não aparecem na impressão) -->
+        <div class="text-center no-print btn-print">
+            <button onclick="window.print()" class="btn btn-primary btn-lg me-2">
+                <i class="bi bi-printer"></i> Imprimir
+            </button>
+            <a href="{{ url_for('detalhes', id=investigacao.id) }}" class="btn btn-secondary btn-lg">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

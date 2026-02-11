@@ -2,10 +2,27 @@
 
 {% block title %}Investigações - Sistema PIP{% endblock %}
 
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb" class="mt-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('dashboard') }}"><i class="bi bi-house-door"></i> Dashboard</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+            <i class="bi bi-list-ul"></i> Investigações
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">
         <i class="bi bi-list-ul"></i> Todas as Investigações
+        {% if total_resultados > 0 %}
+            <span class="badge bg-primary">{{ total_resultados }}</span>
+        {% endif %}
     </h1>
     <div class="btn-toolbar mb-2 mb-md-0">
         <a href="{{ url_for('nova_investigacao') }}" class="btn btn-sm btn-primary">
@@ -14,9 +31,146 @@
     </div>
 </div>
 
+<!-- ==================== FILTROS AVANÇADOS ==================== -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtros Avançados</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('investigacoes') }}">
+            <div class="row g-3">
+                <!-- BUSCA POR PALAVRA-CHAVE -->
+                <div class="col-md-6">
+                    <label class="form-label"><i class="bi bi-search"></i> Busca Geral</label>
+                    <input type="text" class="form-control" name="busca" 
+                           placeholder="Processo, denunciado, assunto, protocolo..." 
+                           value="{{ busca or '' }}">
+                    <small class="text-muted">Pesquisa em múltiplos campos</small>
+                </div>
+
+                <!-- FILTRO POR STATUS (MÚLTIPLOS) -->
+                <div class="col-md-3">
+                    <label class="form-label"><i class="bi bi-flag"></i> Status</label>
+                    <select class="form-select" name="status" multiple size="3">
+                        {% for st in lista_status %}
+                            <option value="{{ st }}" {% if st in filtros_status %}selected{% endif %}>
+                                {{ st }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Ctrl+Clique para múltiplos</small>
+                </div>
+
+                <!-- FILTRO POR RESPONSÁVEL (MÚLTIPLOS) -->
+                <div class="col-md-3">
+                    <label class="form-label"><i class="bi bi-person"></i> Responsável</label>
+                    <select class="form-select" name="responsavel" multiple size="3">
+                        {% for resp in lista_responsaveis %}
+                            <option value="{{ resp }}" {% if resp in filtros_responsavel %}selected{% endif %}>
+                                {{ resp }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Ctrl+Clique para múltiplos</small>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-2">
+                <!-- FILTRO POR CLASSIFICAÇÃO -->
+                <div class="col-md-3">
+                    <label class="form-label"><i class="bi bi-tag"></i> Classificação</label>
+                    <select class="form-select" name="classificacao">
+                        <option value="todos">Todas</option>
+                        {% for class in lista_classificacoes %}
+                            <option value="{{ class }}" {% if filtro_classificacao == class %}selected{% endif %}>
+                                {{ class }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- FILTRO POR ANO -->
+                <div class="col-md-2">
+                    <label class="form-label"><i class="bi bi-calendar"></i> Ano</label>
+                    <select class="form-select" name="ano">
+                        <option value="todos">Todos</option>
+                        {% for ano in lista_anos %}
+                            <option value="{{ ano }}" {% if filtro_ano == ano|string %}selected{% endif %}>
+                                {{ ano }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- FILTRO POR COMPLEXIDADE -->
+                <div class="col-md-2">
+                    <label class="form-label"><i class="bi bi-graph-up"></i> Complexidade</label>
+                    <select class="form-select" name="complexidade">
+                        <option value="todos">Todas</option>
+                        {% for comp in lista_complexidades %}
+                            <option value="{{ comp }}" {% if filtro_complexidade == comp %}selected{% endif %}>
+                                {{ comp }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- FILTRO POR PERÍODO DE DATA (INÍCIO) -->
+                <div class="col-md-2">
+                    <label class="form-label"><i class="bi bi-calendar-date"></i> Data Início</label>
+                    <input type="date" class="form-control" name="data_inicio" value="{{ data_inicio or '' }}">
+                </div>
+
+                <!-- FILTRO POR PERÍODO DE DATA (FIM) -->
+                <div class="col-md-2">
+                    <label class="form-label"><i class="bi bi-calendar-date"></i> Data Fim</label>
+                    <input type="date" class="form-control" name="data_fim" value="{{ data_fim or '' }}">
+                </div>
+            </div>
+
+            <div class="row g-3 mt-2">
+                <!-- ORDENAÇÃO -->
+                <div class="col-md-3">
+                    <label class="form-label"><i class="bi bi-sort-down"></i> Ordenar por</label>
+                    <select class="form-select" name="ordenar_por">
+                        <option value="id_desc" {% if ordenar_por == 'id_desc' %}selected{% endif %}>ID (Mais recentes)</option>
+                        <option value="id_asc" {% if ordenar_por == 'id_asc' %}selected{% endif %}>ID (Mais antigos)</option>
+                        <option value="previsao_asc" {% if ordenar_por == 'previsao_asc' %}selected{% endif %}>Prazo (Mais próximo)</option>
+                        <option value="previsao_desc" {% if ordenar_por == 'previsao_desc' %}selected{% endif %}>Prazo (Mais distante)</option>
+                        <option value="status_asc" {% if ordenar_por == 'status_asc' %}selected{% endif %}>Status (A-Z)</option>
+                        <option value="status_desc" {% if ordenar_por == 'status_desc' %}selected{% endif %}>Status (Z-A)</option>
+                        <option value="responsavel_asc" {% if ordenar_por == 'responsavel_asc' %}selected{% endif %}>Responsável (A-Z)</option>
+                        <option value="responsavel_desc" {% if ordenar_por == 'responsavel_desc' %}selected{% endif %}>Responsável (Z-A)</option>
+                    </select>
+                </div>
+
+                <!-- BOTÕES -->
+                <div class="col-md-9 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-funnel"></i> Aplicar Filtros
+                    </button>
+                    <a href="{{ url_for('investigacoes') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Limpar Filtros
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== RESULTADO ==================== -->
+{% if total_resultados > 0 %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> 
+        Mostrando <strong>{{ total_resultados }}</strong> 
+        {% if total_resultados == 1 %}investigação{% else %}investigações{% endif %}
+    </div>
+{% endif %}
+
+<!-- ==================== TABELA ==================== -->
 <div class="table-responsive">
     <table class="table table-striped table-hover">
-        <thead>
+        <thead class="table-dark">
             <tr>
                 <th>ID</th>
                 <th>Processo GDOC</th>
@@ -35,7 +189,7 @@
                 <td>{{ inv.processo_gdoc or '-' }}</td>
                 <td>
                     {{ inv.nome_denunciado or '-' }}<br>
-                    <small class="text-muted">{{ inv.matricula_denunciado or '-' }}</small>
+                    <small class="text-muted">Mat: {{ inv.matricula_denunciado or '-' }}</small>
                 </td>
                 <td>
                     {% if inv.assunto %}
@@ -79,11 +233,11 @@
 </div>
 
 {% if investigacoes|length == 0 %}
-<div class="alert alert-info text-center">
-    <i class="bi bi-info-circle"></i> Nenhuma investigação cadastrada ainda.
-    <a href="{{ url_for('nova_investigacao') }}" class="alert-link">Cadastrar a primeira investigação</a>
+<div class="alert alert-warning text-center">
+    <i class="bi bi-exclamation-triangle"></i> 
+    Nenhuma investigação encontrada com os filtros aplicados.
+    <a href="{{ url_for('investigacoes') }}" class="alert-link">Limpar filtros</a>
 </div>
 {% endif %}
 
 {% endblock %}
-

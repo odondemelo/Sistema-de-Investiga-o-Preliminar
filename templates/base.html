@@ -38,6 +38,7 @@
             color: rgba(255, 255, 255, 0.8);
             padding: 0.75rem 1rem;
             transition: all 0.3s;
+            position: relative;
         }
 
         .sidebar .nav-link:hover {
@@ -55,6 +56,33 @@
             margin-right: 0.5rem;
         }
 
+        /* Badge de notificação */
+        .notification-badge {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            background-color: #dc3545;
+            color: white;
+            border-radius: 50%;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+            min-width: 20px;
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+        }
+
         .navbar-brand {
             padding-top: 0.75rem;
             padding-bottom: 0.75rem;
@@ -65,6 +93,47 @@
 
         .navbar {
             box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* Navbar superior - usuário e botão sair */
+        .navbar .user-info {
+            color: white;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .navbar .btn-logout {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 0.375rem 1rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .navbar .btn-logout:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: white;
+        }
+
+        /* Badge de nível de usuário */
+        .user-badge {
+            background-color: rgba(255, 215, 0, 0.3);
+            color: gold;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-left: 0.5rem;
         }
 
         main {
@@ -89,6 +158,46 @@
             padding: 0.25rem 0.5rem;
             font-size: 0.875rem;
         }
+
+       /* ESTILOS PARA BREADCRUMBS */
+.breadcrumb {
+    background-color: #e9ecef;
+    padding: 1rem 1.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.breadcrumb-item {
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.breadcrumb-item a {
+    color: #667eea;
+    text-decoration: none;
+    transition: color 0.3s;
+    font-weight: 600;
+}
+
+.breadcrumb-item a:hover {
+    color: #764ba2;
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    color: #495057;
+    font-weight: 600;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    color: #6c757d;
+    font-size: 1.2rem;
+    padding: 0 0.5rem;
+}
+
     </style>
 
     {% block extra_css %}{% endblock %}
@@ -102,19 +211,20 @@
         <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="navbar-nav">
-            <div class="nav-item text-nowrap">
-                <span class="nav-link px-3 text-white">
-                    <i class="bi bi-person-circle"></i> {{ session.nome }}
-                </span>
-            </div>
-        </div>
-        <div class="navbar-nav">
-            <div class="nav-item text-nowrap">
-                <a class="nav-link px-3" href="{{ url_for('logout') }}">
-                    <i class="bi bi-box-arrow-right"></i> Sair
-                </a>
-            </div>
+
+        <!-- Usuário e Botão Sair -->
+        <div class="d-flex align-items-center px-3">
+            <span class="user-info">
+                <i class="bi bi-person-circle"></i>
+                <strong>{{ session.nome }}</strong>
+                {% if user_nivel == 'admin' %}
+                <span class="user-badge"><i class="bi bi-star-fill"></i> ADMIN</span>
+                {% endif %}
+            </span>
+            <a href="{{ url_for('logout') }}" class="btn-logout">
+                <i class="bi bi-box-arrow-right"></i>
+                Sair
+            </a>
         </div>
     </nav>
 
@@ -127,6 +237,9 @@
                         <li class="nav-item">
                             <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
                                 <i class="bi bi-house-door"></i> Dashboard
+                                {% if total_alertas > 0 %}
+                                <span class="notification-badge">{{ total_alertas }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li class="nav-item">
@@ -139,20 +252,59 @@
                                 <i class="bi bi-plus-circle"></i> Nova Investigação
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'relatorios' %}active{% endif %}" href="{{ url_for('relatorios') }}">
+                                <i class="bi bi-graph-up"></i> Relatórios
+                            </a>
+                        </li>
                     </ul>
 
+                    <!-- SEÇÃO DE ALERTAS -->
+                    {% if total_alertas > 0 %}
                     <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-white">
-                        <span>Relatórios</span>
+                        <span><i class="bi bi-bell-fill"></i> Alertas</span>
+                    </h6>
+                    <ul class="nav flex-column mb-2">
+                        {% if qtd_atrasadas > 0 %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('investigacoes') }}?status=Em+Andamento&ordenar_por=prazo_asc" style="color: #ffcccb;">
+                                <i class="bi bi-exclamation-triangle-fill"></i> Atrasadas
+                                <span class="notification-badge" style="position: relative; top: 0; right: 0; margin-left: 5px;">{{ qtd_atrasadas }}</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if qtd_proximas_prazo > 0 %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('investigacoes') }}?status=Em+Andamento&ordenar_por=prazo_asc" style="color: #fff3cd;">
+                                <i class="bi bi-clock-fill"></i> Próximas do Prazo
+                                <span class="notification-badge" style="position: relative; top: 0; right: 0; margin-left: 5px; background-color: #ffc107;">{{ qtd_proximas_prazo }}</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    {% endif %}
+
+                    <!-- SEÇÃO DE ADMINISTRAÇÃO (SÓ ADMIN VÊ) -->
+                    {% if user_nivel == 'admin' %}
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-white">
+                        <span><i class="bi bi-gear-fill"></i> Administração</span>
                     </h6>
                     <ul class="nav flex-column mb-2">
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="bi bi-graph-up"></i> Estatísticas
+                            <a class="nav-link {% if request.endpoint == 'usuarios' %}active{% endif %}" href="{{ url_for('usuarios') }}">
+                                <i class="bi bi-people-fill"></i> Usuários
                             </a>
                         </li>
+                    </ul>
+                    {% endif %}
+
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-white">
+                        <span>Exportação</span>
+                    </h6>
+                    <ul class="nav flex-column mb-2">
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="bi bi-file-earmark-text"></i> Relatórios
+                            <a class="nav-link" href="{{ url_for('exportar_excel') }}">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Exportar Excel
                             </a>
                         </li>
                     </ul>
@@ -183,6 +335,9 @@
                         </div>
                     {% endif %}
                 {% endwith %}
+
+                <!-- BREADCRUMBS (AQUI!) -->
+                {% block breadcrumbs %}{% endblock %}
 
                 <!-- Conteúdo das Páginas -->
                 {% block content %}{% endblock %}

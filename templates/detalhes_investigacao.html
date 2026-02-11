@@ -290,8 +290,36 @@
                     {% else %}
                         <h3><span class="badge bg-warning text-dark">{{ investigacao.status }}</span></h3>
                     {% endif %}
+
                 {% elif investigacao.status == 'Concluída' %}
                     <h3><span class="badge bg-success">{{ investigacao.status }}</span></h3>
+
+                    <!-- ✅ NOVA LÓGICA DE DATA E PRAZO -->
+                    {% if investigacao.data_conclusao %}
+                        <div class="mt-3 border-top pt-2">
+                            <div class="text-muted mb-1">
+                                <small>
+                                    <i class="bi bi-calendar-check"></i> Em: 
+                                    <strong>{{ investigacao.data_conclusao.strftime('%d/%m/%Y') }}</strong>
+                                </small>
+                            </div>
+
+                            {% if investigacao.previsao_conclusao %}
+                                {% set diferenca = (investigacao.data_conclusao - investigacao.previsao_conclusao).days %}
+
+                                {% if diferenca <= 0 %}
+                                    <small class="text-success fw-bold">
+                                        <i class="bi bi-check-circle-fill"></i> Concluída no prazo!
+                                    </small>
+                                {% else %}
+                                    <small class="text-danger fw-bold">
+                                        <i class="bi bi-exclamation-triangle-fill"></i> {{ diferenca }} dias de atraso
+                                    </small>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
                 {% else %}
                     <h3><span class="badge bg-secondary">{{ investigacao.status or 'Indefinido' }}</span></h3>
                 {% endif %}

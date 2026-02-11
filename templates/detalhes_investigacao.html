@@ -120,31 +120,77 @@
             </div>
         </div>
 
-        <!-- Diligências -->
+        <!-- TIMELINE DE DILIGÊNCIAS (NOVO VISUAL) -->
         <div class="card mb-3">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0"><i class="bi bi-list-check"></i> Diligências</h5>
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Timeline de Diligências</h5>
+                <span class="badge bg-light text-dark">{{ historico|length }} eventos</span>
             </div>
-            <div class="card-body">
-                {% if investigacao.diligencias %}
-                    <p style="white-space: pre-line;">{{ investigacao.diligencias }}</p>
-                {% else %}
-                    <p class="text-muted">Nenhuma diligência registrada.</p>
-                {% endif %}
+            <div class="card-body bg-light">
 
-                <hr>
+                <!-- Área de Rolagem da Timeline -->
+                <div class="timeline-container mb-4" style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
+                    {% if historico %}
+                        {% for item in historico %}
+                        <div class="card mb-3 shadow-sm border-0">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <!-- Ícones e Cores baseados no Tipo -->
+                                        {% if item.tipo == 'criacao' %}
+                                            <span class="badge bg-success"><i class="bi bi-plus-lg"></i> Criação</span>
+                                        {% elif item.tipo == 'edicao' %}
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-pencil"></i> Edição</span>
+                                        {% elif item.tipo == 'exclusao_anexo' %}
+                                            <span class="badge bg-danger"><i class="bi bi-trash"></i> Anexo</span>
+                                        {% else %}
+                                            <span class="badge bg-primary"><i class="bi bi-chat-left-text"></i> Diligência</span>
+                                        {% endif %}
+
+                                        <strong class="ms-2 text-dark">{{ item.usuario or 'Sistema' }}</strong>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar3"></i> {{ item.data.strftime('%d/%m/%Y') }} 
+                                        <i class="bi bi-clock ms-1"></i> {{ item.data.strftime('%H:%M') }}
+                                    </small>
+                                </div>
+                                <p class="card-text text-secondary" style="white-space: pre-line; font-size: 0.95rem;">{{ item.descricao }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <!-- Se não tiver histórico estruturado, mostra o campo antigo de texto se houver -->
+                        {% if investigacao.diligencias %}
+                            <div class="alert alert-secondary">
+                                <strong><i class="bi bi-archive"></i> Histórico Antigo:</strong><br>
+                                <p style="white-space: pre-line;">{{ investigacao.diligencias }}</p>
+                            </div>
+                        {% else %}
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-chat-square-dots display-4"></i>
+                                <p class="mt-2">Nenhuma movimentação registrada ainda.</p>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
 
                 <!-- Formulário para adicionar nova diligência -->
                 {% if user_nivel in ['admin', 'investigador'] %}
-                <form method="POST" action="{{ url_for('adicionar_diligencia', id=investigacao.id) }}">
-                    <div class="mb-3">
-                        <label class="form-label"><strong>Adicionar Nova Diligência:</strong></label>
-                        <textarea class="form-control" name="descricao" rows="4" placeholder="Descreva a diligência realizada..." required></textarea>
+                <div class="card border-primary">
+                    <div class="card-body bg-white">
+                        <h6 class="card-title text-primary"><i class="bi bi-plus-circle"></i> Nova Movimentação</h6>
+                        <form method="POST" action="{{ url_for('adicionar_diligencia', id=investigacao.id) }}">
+                            <div class="mb-3">
+                                <textarea class="form-control" name="descricao" rows="3" placeholder="Descreva a diligência realizada, solicitação feita ou andamento do processo..." required></textarea>
+                            </div>
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-send"></i> Registrar
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i> Adicionar Diligência
-                    </button>
-                </form>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -201,26 +247,17 @@
                                 <div class="modal-dialog">
                                     <div class="modal-content">
                                         <div class="modal-header bg-danger text-white">
-                                            <h5 class="modal-title" id="modalExcluirAnexoLabel{{ anexo.id }}">
-                                                <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
-                                            </h5>
+                                            <h5 class="modal-title" id="modalExcluirAnexoLabel{{ anexo.id }}">Confirmar Exclusão</h5>
                                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                         <div class="modal-body">
-                                            <p><strong>Tem certeza que deseja excluir este anexo?</strong></p>
-                                            <p class="mb-0">
-                                                <i class="bi bi-file-earmark"></i> <strong>{{ anexo.nome_arquivo }}</strong><br>
-                                                <small class="text-muted">Esta ação não pode ser desfeita!</small>
-                                            </p>
+                                            Tem certeza que deseja excluir o anexo <strong>{{ anexo.nome_arquivo }}</strong>?
                                         </div>
                                         <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                <i class="bi bi-x-circle"></i> Cancelar
-                                            </button>
-                                            <form method="POST" action="{{ url_for('excluir_anexo', anexo_id=anexo.id) }}" style="display: inline;">
-                                                <button type="submit" class="btn btn-danger">
-                                                    <i class="bi bi-trash"></i> Sim, Excluir
-                                                </button>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <!-- ✅ CORRIGIDO AQUI: anexo_id=anexo.id -->
+                                            <form method="POST" action="{{ url_for('excluir_anexo', anexo_id=anexo.id) }}">
+                                                <button type="submit" class="btn btn-danger">Excluir</button>
                                             </form>
                                         </div>
                                     </div>
@@ -230,47 +267,6 @@
                     </ul>
                 {% else %}
                     <p class="text-muted">Nenhum anexo encontrado para esta investigação.</p>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Histórico -->
-        <div class="card mb-3">
-            <div class="card-header bg-dark text-white">
-                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Histórico</h5>
-            </div>
-            <div class="card-body">
-                {% if historico %}
-                    <div class="list-group">
-                        {% for item in historico %}
-                        <div class="list-group-item mb-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <strong>
-                                    {% if item.tipo == 'edicao' %}
-                                        <i class="bi bi-pencil-square text-warning"></i>
-                                    {% elif item.tipo == 'diligencia' %}
-                                        <i class="bi bi-clipboard-check text-info"></i>
-                                    {% elif item.tipo == 'exclusao_anexo' %}
-                                        <i class="bi bi-trash text-danger"></i>
-                                    {% else %}
-                                        <i class="bi bi-info-circle text-secondary"></i>
-                                    {% endif %}
-                                    {{ item.usuario or 'Sistema' }}
-                                </strong>
-                                <small class="text-muted">
-                                    {% if item.data %}
-                                        {{ item.data.strftime('%d/%m/%Y %H:%M') }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </small>
-                            </div>
-                            <p class="mb-0 mt-2" style="white-space: pre-line;">{{ item.descricao }}</p>
-                        </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-muted">Nenhum histórico registrado.</p>
                 {% endif %}
             </div>
         </div>

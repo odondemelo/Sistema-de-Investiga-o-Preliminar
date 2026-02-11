@@ -223,15 +223,23 @@
                     <small class="text-muted">Calculado automaticamente (120 dias após entrada PRFI)</small>
                 </div>
 
-                <!-- Status -->
-                <div class="col-md-6 mb-3">
-                    <label class="form-label"><strong>Status:</strong></label>
-                    <select class="form-select" name="status">
-                        <option value="Em Fila" {% if investigacao.status == 'Em Fila' %}selected{% endif %}>Em Fila</option>
-                        <option value="Em Andamento" {% if investigacao.status == 'Em Andamento' %}selected{% endif %}>Em Andamento</option>
-                        <option value="Concluída" {% if investigacao.status == 'Concluída' %}selected{% endif %}>Concluída</option>
-                    </select>
-                </div>
+<!-- Status -->
+<div class="col-md-6 mb-3">
+    <label class="form-label"><strong>Status:</strong></label>
+    <select class="form-select" name="status" id="status">
+        <option value="Em Fila" {% if investigacao.status == 'Em Fila' %}selected{% endif %}>Em Fila</option>
+        <option value="Em Andamento" {% if investigacao.status == 'Em Andamento' %}selected{% endif %}>Em Andamento</option>
+        <option value="Concluída" {% if investigacao.status == 'Concluída' %}selected{% endif %}>Concluída</option>
+    </select>
+</div>
+
+<!-- ✅ NOVO: DATA DE CONCLUSÃO (EDITÁVEL SE STATUS = CONCLUÍDA) -->
+<div class="col-md-6 mb-3" id="div-data-conclusao" style="display: none;">
+    <label class="form-label"><strong>Data de Conclusão:</strong></label>
+    <input type="date" class="form-control" name="data_conclusao" id="data_conclusao" value="{{ investigacao.data_conclusao.strftime('%Y-%m-%d') if investigacao.data_conclusao else '' }}">
+    <small class="text-muted">Se deixar em branco, será preenchida automaticamente com a data de hoje</small>
+</div>
+
 
                 <!-- Resultado Final -->
                 <div class="col-md-6 mb-3">
@@ -380,6 +388,35 @@ document.getElementById('entrada_prfi').addEventListener('change', function() {
         document.getElementById('previsao_conclusao').value = `${ano}-${mes}-${dia}`;
     }
 });
+</script>
+<script>
+// Mostrar/ocultar campo de data de conclusão baseado no status
+function toggleDataConclusao() {
+    const status = document.getElementById('status').value;
+    const divDataConclusao = document.getElementById('div-data-conclusao');
+    const inputDataConclusao = document.getElementById('data_conclusao');
+
+    if (status === 'Concluída') {
+        divDataConclusao.style.display = 'block';
+
+        // Se não tiver data ainda, preencher com hoje
+        if (!inputDataConclusao.value) {
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            inputDataConclusao.value = `${ano}-${mes}-${dia}`;
+        }
+    } else {
+        divDataConclusao.style.display = 'none';
+    }
+}
+
+// Executar ao carregar a página
+document.addEventListener('DOMContentLoaded', toggleDataConclusao);
+
+// Executar quando mudar o status
+document.getElementById('status').addEventListener('change', toggleDataConclusao);
 </script>
 
 {% endblock %}

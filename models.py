@@ -97,6 +97,7 @@ class Investigacao(db.Model):
     distribuicao_prfip = db.Column(db.Date)
     distribuicao_prfir = db.Column(db.Date)
     previsao_conclusao = db.Column(db.Date)
+    data_conclusao = db.Column(db.Date, nullable=True)  # ✅ NOVO CAMPO ADICIONADO!
     status = db.Column(db.String(50), default='Em Andamento')
     resultado_final = db.Column(db.String(200))
     justificativa = db.Column(db.Text)
@@ -122,6 +123,10 @@ class Investigacao(db.Model):
 
     @property
     def dias_restantes(self):
+        """Calcula dias restantes APENAS se NÃO estiver concluída"""
+        if self.status == 'Concluída':
+            return None  # ✅ NÃO CALCULA PRAZO PARA CONCLUÍDAS!
+
         if self.previsao_conclusao:
             delta = self.previsao_conclusao - datetime.now().date()
             return delta.days
@@ -129,11 +134,19 @@ class Investigacao(db.Model):
 
     @property
     def esta_atrasado(self):
-        return self.dias_restantes is not None and self.dias_restantes < 0 and self.status == 'Em Andamento'
+        """Verifica se está atrasado APENAS se estiver em andamento"""
+        if self.status != 'Em Andamento':
+            return False  # ✅ CONCLUÍDAS NUNCA ESTÃO ATRASADAS!
+
+        return self.dias_restantes is not None and self.dias_restantes < 0
 
     @property
     def alerta_prazo(self):
-        return self.dias_restantes is not None and 0 <= self.dias_restantes <= 15 and self.status == 'Em Andamento'
+        """Alerta de prazo APENAS para investigações em andamento"""
+        if self.status != 'Em Andamento':
+            return False  # ✅ CONCLUÍDAS NÃO TÊM ALERTA!
+
+        return self.dias_restantes is not None and 0 <= self.dias_restantes <= 15
 
     def to_dict(self):
         return {
@@ -142,7 +155,8 @@ class Investigacao(db.Model):
             'processo_gdoc': self.processo_gdoc,
             'assunto': self.assunto,
             'status': self.status,
-            'dias_restantes': self.dias_restantes
+            'dias_restantes': self.dias_restantes,
+            'data_conclusao': self.data_conclusao.strftime('%d/%m/%Y') if self.data_conclusao else None
         }
 
 
@@ -167,18 +181,18 @@ class HistoricoDiligencia(db.Model):
         }
 
 
- # ==================== MODELO DE ANEXO ====================
+# ==================== MODELO DE ANEXO ====================
 class Anexo(db.Model):
     __tablename__ = 'anexos'
 
     id = db.Column(db.Integer, primary_key=True)
     investigacao_id = db.Column(db.Integer, db.ForeignKey('investigacoes.id'), nullable=False)
-    nome_arquivo = db.Column(db.String(255), nullable=False) # Nome original do arquivo
-    caminho_arquivo = db.Column(db.String(255), nullable=False) # Caminho onde o arquivo está salvo no servidor
-    tipo_mime = db.Column(db.String(100)) # Tipo MIME do arquivo (ex: application/pdf, image/jpeg)
-    tamanho_bytes = db.Column(db.Integer) # Tamanho do arquivo em bytes
+    nome_arquivo = db.Column(db.String(255), nullable=False)  # Nome original do arquivo
+    caminho_arquivo = db.Column(db.String(255), nullable=False)  # Caminho onde o arquivo está salvo no servidor
+    tipo_mime = db.Column(db.String(100))  # Tipo MIME do arquivo (ex: application/pdf, image/jpeg)
+    tamanho_bytes = db.Column(db.Integer)  # Tamanho do arquivo em bytes
     data_upload = db.Column(db.DateTime, default=datetime.utcnow)
-    usuario_upload = db.Column(db.String(100)) # Quem fez o upload
+    usuario_upload = db.Column(db.String(100))  # Quem fez o upload
 
     # Relacionamento com Investigacao
     investigacao = db.relationship('Investigacao', backref='anexos', lazy=True)
@@ -194,4 +208,3 @@ class Anexo(db.Model):
             'data_upload': self.data_upload.isoformat() if self.data_upload else None,
             'usuario_upload': self.usuario_upload
         }
-       

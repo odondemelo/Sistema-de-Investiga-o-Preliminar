@@ -952,7 +952,7 @@ def editar_investigacao(id):
             old_objeto_especificacao = investigacao.objeto_especificacao
             old_diligencias = investigacao.diligencias
             old_complexidade = investigacao.complexidade
-            old_status = investigacao.status
+            old_status = investigacao.status  # ✅ GUARDAMOS O STATUS ANTIGO
             old_justificativa = investigacao.justificativa
             old_resultado_final = investigacao.resultado_final
             old_entrada_prfi = investigacao.entrada_prfi.strftime('%Y-%m-%d') if investigacao.entrada_prfi else ''
@@ -977,9 +977,34 @@ def editar_investigacao(id):
             investigacao.objeto_especificacao = check_and_update('Objeto/Especificação', request.form.get('objeto_especificacao'), old_objeto_especificacao)
             investigacao.diligencias = check_and_update('Diligências', request.form.get('diligencias'), old_diligencias)
             investigacao.complexidade = check_and_update('Complexidade', request.form.get('complexidade'), old_complexidade)
-            investigacao.status = check_and_update('Status', request.form.get('status'), old_status)
             investigacao.justificativa = check_and_update('Justificativa', request.form.get('justificativa'), old_justificativa)
             investigacao.resultado_final = check_and_update('Resultado Final', request.form.get('resultado_final'), old_resultado_final)
+
+            # ✅ REGISTRAR DATA DE CONCLUSÃO (MANUAL OU AUTOMÁTICA)
+            # ✅ REGISTRAR DATA DE CONCLUSÃO (MANUAL OU AUTOMÁTICA)
+            novo_status = request.form.get('status')
+            data_conclusao_form = request.form.get('data_conclusao')
+
+            # Se o status é "Concluída"
+            if novo_status == 'Concluída':
+                # Se o usuário preencheu a data manualmente
+                if data_conclusao_form:
+                    nova_data = datetime.strptime(data_conclusao_form, '%Y-%m-%d').date()
+                    if investigacao.data_conclusao != nova_data:
+                        investigacao.data_conclusao = nova_data
+                        campos_alterados.append(f"- Data de Conclusão definida como {nova_data.strftime('%d/%m/%Y')}")
+                # Se não preencheu e não tinha data antes, usar hoje
+                elif not investigacao.data_conclusao:
+                    investigacao.data_conclusao = datetime.now().date()
+                    campos_alterados.append(f"- Status alterado para 'Concluída' em {investigacao.data_conclusao.strftime('%d/%m/%Y')}")
+
+            # Se mudou de "Concluída" para outro status, limpar a data
+            elif old_status == 'Concluída' and novo_status != 'Concluída':
+                investigacao.data_conclusao = None
+                campos_alterados.append(f"- Data de Conclusão removida (status mudou de 'Concluída' para '{novo_status}')")
+
+            investigacao.status = check_and_update('Status', novo_status, old_status)
+
 
             nova_entrada_prfi_str = request.form.get('entrada_prfi')
             if nova_entrada_prfi_str and nova_entrada_prfi_str != old_entrada_prfi:
@@ -1013,6 +1038,7 @@ def editar_investigacao(id):
             print(f"Erro: {e}")
 
     return render_template('editar_investigacao.html', investigacao=investigacao)
+
 
 
 @app.route('/investigacoes/<int:id>/adicionar-diligencia', methods=['POST'])

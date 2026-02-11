@@ -3,7 +3,8 @@ from models import db, Investigacao, HistoricoDiligencia, Usuario, Anexo
 from config import Config
 from datetime import datetime, timedelta
 import json
-import pandas as pd
+import pandas as pd # import pandas as pd
+
 from io import BytesIO
 from collections import Counter
 from werkzeug.utils import secure_filename

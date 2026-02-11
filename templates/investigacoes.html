@@ -183,7 +183,13 @@
             </tr>
         </thead>
         <tbody>
-            {% for inv in investigacoes %}
+            <!-- ✅ AQUI MUDOU: investigacoes.items -->
+            {% for inv in investigacoes.items %}
+
+            <!-- ✅ CÁLCULO DE PRAZOS DENTRO DO LOOP -->
+            {% set dias_restantes = (inv.previsao_conclusao - hoje).days if inv.previsao_conclusao else None %}
+            {% set esta_atrasado = dias_restantes < 0 if dias_restantes is not none else False %}
+
             <tr>
                 <td><strong>#{{ inv.id }}</strong></td>
                 <td>{{ inv.processo_gdoc or '-' }}</td>
@@ -201,7 +207,7 @@
                 <td>{{ inv.responsavel or '-' }}</td>
                 <td>
                     {% if inv.status == 'Em Andamento' %}
-                        {% if inv.esta_atrasado %}
+                        {% if esta_atrasado %}
                             <span class="badge bg-danger">ATRASADO</span>
                         {% else %}
                             <span class="badge bg-warning text-dark">{{ inv.status }}</span>
@@ -213,9 +219,9 @@
                     {% endif %}
                 </td>
                 <td>
-                    {% if inv.dias_restantes is not none %}
-                        <span class="{% if inv.dias_restantes < 0 %}text-danger{% elif inv.dias_restantes <= 15 %}text-warning{% else %}text-success{% endif %}">
-                            <strong>{{ inv.dias_restantes }}</strong> dias
+                    {% if dias_restantes is not none %}
+                        <span class="{% if dias_restantes < 0 %}text-danger{% elif dias_restantes <= 15 %}text-warning{% else %}text-success{% endif %}">
+                            <strong>{{ dias_restantes }}</strong> dias
                         </span>
                     {% else %}
                         -
@@ -232,12 +238,43 @@
     </table>
 </div>
 
-{% if investigacoes|length == 0 %}
+{% if investigacoes.items|length == 0 %}
 <div class="alert alert-warning text-center">
     <i class="bi bi-exclamation-triangle"></i> 
     Nenhuma investigação encontrada com os filtros aplicados.
     <a href="{{ url_for('investigacoes') }}" class="alert-link">Limpar filtros</a>
 </div>
 {% endif %}
+
+<!-- ==================== PAGINAÇÃO ==================== -->
+<nav aria-label="Navegação de páginas" class="mt-4">
+    <ul class="pagination justify-content-center">
+
+        <!-- Botão Anterior -->
+        <li class="page-item {% if not investigacoes.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('investigacoes', page=investigacoes.prev_num, **request.args) }}" tabindex="-1">Anterior</a>
+        </li>
+
+        <!-- Números das Páginas -->
+        {% for page_num in investigacoes.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+            {% if page_num %}
+                <li class="page-item {% if page_num == investigacoes.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('investigacoes', page=page_num, **request.args) }}">{{ page_num }}</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+
+        <!-- Botão Próximo -->
+        <li class="page-item {% if not investigacoes.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('investigacoes', page=investigacoes.next_num, **request.args) }}">Próximo</a>
+        </li>
+    </ul>
+
+    <div class="text-center text-muted small mt-2">
+        Página {{ investigacoes.page }} de {{ investigacoes.pages }}
+    </div>
+</nav>
 
 {% endblock %}

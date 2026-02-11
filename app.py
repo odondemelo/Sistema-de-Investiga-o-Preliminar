@@ -254,7 +254,7 @@ def relatorios():
                          hoje=hoje)
 
 
-# ==================== ROTA: LISTA DE INVESTIGAÇÕES (COM FILTROS AVANÇADOS) ====================
+# ==================== ROTA: LISTA DE INVESTIGAÇÕES (COM PAGINAÇÃO E FILTROS) ====================
 @app.route('/investigacoes')
 def investigacoes():
     if 'usuario' not in session:
@@ -342,9 +342,16 @@ def investigacoes():
     elif ordenar_por == 'responsavel_desc':
         query = query.order_by(Investigacao.responsavel.desc())
 
-    # ==================== EXECUTAR QUERY ====================
-    resultados = query.all()
-    total_resultados = len(resultados)
+    # ==================== EXECUTAR QUERY COM PAGINAÇÃO ====================
+    # Pega o número da página da URL (padrão = 1)
+    page = request.args.get('page', 1, type=int)
+    per_page = 10  # Número de itens por página
+
+    # Executa a paginação
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    # Total de resultados encontrados (para exibir na tela)
+    total_resultados = pagination.total
 
     # ==================== LISTAS PARA OS FILTROS DINÂMICOS ====================
     lista_status = db.session.query(Investigacao.status).distinct().order_by(Investigacao.status).all()
@@ -354,7 +361,7 @@ def investigacoes():
     lista_complexidades = db.session.query(Investigacao.complexidade).distinct().order_by(Investigacao.complexidade).all()
 
     return render_template('investigacoes.html',
-                         investigacoes=resultados,
+                         investigacoes=pagination, # ✅ Passando o objeto de paginação
                          total_resultados=total_resultados,
                          # Listas para popular os filtros
                          lista_status=[s[0] for s in lista_status if s[0]],
@@ -1138,6 +1145,7 @@ def adicionar_diligencia(id):
 #                 'Protocolo Origem': inv.protocolo_origem,
 #                 'Admitida/Inadmitida': inv.admitida_ou_inadmitida,
 #                 'Unidade Origem': inv.unidade_origem,
+#                 #                 'Unidade Origem': inv.unidade_origem,
 #                 'Classificação': inv.classificacao,
 #                 'Assunto': inv.assunto,
 #                 'Ano': inv.ano,

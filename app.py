@@ -3,7 +3,7 @@ from models import db, Investigacao, HistoricoDiligencia, Usuario, Anexo
 from config import Config
 from datetime import datetime, timedelta
 import json
-import pandas as pd # import pandas as pd
+# import pandas as pd  # ✅ COMENTADO
 
 from io import BytesIO
 from collections import Counter
@@ -53,7 +53,7 @@ with app.app_context():
     db.session.commit()
     print("🔐 Migração de usuários concluída!")
 
-   
+
 
 
 # ==================== CONTEXT PROCESSOR PARA NOTIFICAÇÕES ====================
@@ -406,7 +406,6 @@ def detalhes(id):
 
 
 # ==================== ROTA DE IMPRESSÃO DA INVESTIGAÇÃO (CORRIGIDA!) ====================
-# ==================== ROTA DE IMPRESSÃO DA INVESTIGAÇÃO (CORRIGIDA!) ====================
 @app.route('/investigacoes/<int:id>/imprimir')
 def imprimir_investigacao(id):
     if 'usuario' not in session:
@@ -432,7 +431,7 @@ def imprimir_investigacao(id):
                            anexos=anexos,
                            dias_restantes=dias_restantes,
                            esta_atrasado=esta_atrasado,
-                           datetime=datetime)  # ✅ AQUI DENTRO DO RETURN!
+                           datetime=datetime)
 
 # ==================== ROTA: EXPORTAR PDF DA INVESTIGAÇÃO ====================
 @app.route('/investigacoes/<int:id>/exportar-pdf')
@@ -782,8 +781,8 @@ def download_anexo(anexo_id):
         flash(f'Erro ao baixar arquivo: {str(e)}', 'danger')
         print(f"Erro no download: {e}")
         return redirect(url_for('detalhes', id=anexo.investigacao_id))
-    
-    # ==================== ROTA: EXCLUIR ANEXO ====================
+
+# ==================== ROTA: EXCLUIR ANEXO ====================
 @app.route('/anexos/<int:anexo_id>/excluir', methods=['POST'])
 def excluir_anexo(anexo_id):
     if 'usuario' not in session:
@@ -860,7 +859,7 @@ def nova_investigacao():
                 previsao_conclusao = datetime.strptime(request.form.get('previsao_conclusao'), '%Y-%m-%d').date()
 
             nova_inv = Investigacao(
-                responsavel=request.form.get('responsavel', session.get('nome')),  # ✅ Pega do formulário ou da sessão
+                responsavel=request.form.get('responsavel', session.get('nome')),
                 origem=request.form.get('origem'),
                 canal=request.form.get('canal'),
                 protocolo_origem=request.form.get('protocolo_origem'),
@@ -883,7 +882,7 @@ def nova_investigacao():
                 previsao_conclusao=previsao_conclusao,
                 status=request.form.get('status', 'Em Andamento'),
                 justificativa=request.form.get('justificativa'),
-                resultado_final=request.form.get('resultado_final')  # ✅ Adicionado
+                resultado_final=request.form.get('resultado_final')
             )
 
             db.session.add(nova_inv)
@@ -906,7 +905,7 @@ def nova_investigacao():
             flash(f'Erro ao cadastrar investigação: {str(e)}', 'danger')
             print(f"Erro: {e}")
 
-    return render_template('nova_investigacao.html', datetime=datetime)  # ✅ ADICIONE datetime=datetime AQUI!
+    return render_template('nova_investigacao.html', datetime=datetime)
 
 
 @app.route('/investigacoes/<int:id>/editar', methods=['GET', 'POST'])
@@ -1060,64 +1059,65 @@ def adicionar_diligencia(id):
     return redirect(url_for('detalhes', id=id))
 
 
-@app.route('/exportar-excel')
-def exportar_excel():
-    if 'usuario' not in session:
-        flash('Você precisa fazer login primeiro!', 'warning')
-        return redirect(url_for('login'))
-
-    try:
-        investigacoes = Investigacao.query.all()
-
-        dados = []
-        for inv in investigacoes:
-            dados.append({
-                'ID': inv.id,
-                'Processo GDOC': inv.processo_gdoc,
-                'Responsável': inv.responsavel,
-                'Status': inv.status,
-                'Origem': inv.origem,
-                'Canal': inv.canal,
-                'Protocolo Origem': inv.protocolo_origem,
-                'Admitida/Inadmitida': inv.admitida_ou_inadmitida,
-                'Unidade Origem': inv.unidade_origem,
-                'Classificação': inv.classificacao,
-                'Assunto': inv.assunto,
-                'Ano': inv.ano,
-                'Denunciante': inv.denunciante,
-                'Matrícula Denunciado': inv.matricula_denunciado,
-                'Nome Denunciado': inv.nome_denunciado,
-                'Setor': inv.setor,
-                'Diretoria': inv.diretoria,
-                'Vínculo': inv.vinculo,
-                'Objeto/Especificação': inv.objeto_especificacao,
-                'Diligências': inv.diligencias,
-                'Complexidade': inv.complexidade,
-                'Entrada PRFI': inv.entrada_prfi.strftime('%d/%m/%Y') if inv.entrada_prfi else '',
-                'Previsão Conclusão': inv.previsao_conclusao.strftime('%d/%m/%Y') if inv.previsao_conclusao else '',
-                'Justificativa': inv.justificativa,
-                'Resultado Final': inv.resultado_final
-            })
-
-        df = pd.DataFrame(dados)
-
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Investigações')
-
-        output.seek(0)
-
-        return send_file(
-            output,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            as_attachment=True,
-            download_name=f'investigacoes_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-        )
-
-    except Exception as e:
-        flash(f'Erro ao exportar planilha: {str(e)}', 'danger')
-        print(f"Erro: {e}")
-        return redirect(url_for('dashboard'))
+# ==================== ROTA: EXPORTAR EXCEL (COMENTADA TEMPORARIAMENTE) ====================
+# @app.route('/exportar-excel')
+# def exportar_excel():
+#     if 'usuario' not in session:
+#         flash('Você precisa fazer login primeiro!', 'warning')
+#         return redirect(url_for('login'))
+#
+#     try:
+#         investigacoes = Investigacao.query.all()
+#
+#         dados = []
+#         for inv in investigacoes:
+#             dados.append({
+#                 'ID': inv.id,
+#                 'Processo GDOC': inv.processo_gdoc,
+#                 'Responsável': inv.responsavel,
+#                 'Status': inv.status,
+#                 'Origem': inv.origem,
+#                 'Canal': inv.canal,
+#                 'Protocolo Origem': inv.protocolo_origem,
+#                 'Admitida/Inadmitida': inv.admitida_ou_inadmitida,
+#                 'Unidade Origem': inv.unidade_origem,
+#                 'Classificação': inv.classificacao,
+#                 'Assunto': inv.assunto,
+#                 'Ano': inv.ano,
+#                 'Denunciante': inv.denunciante,
+#                 'Matrícula Denunciado': inv.matricula_denunciado,
+#                 'Nome Denunciado': inv.nome_denunciado,
+#                 'Setor': inv.setor,
+#                 'Diretoria': inv.diretoria,
+#                 'Vínculo': inv.vinculo,
+#                 'Objeto/Especificação': inv.objeto_especificacao,
+#                 'Diligências': inv.diligencias,
+#                 'Complexidade': inv.complexidade,
+#                 'Entrada PRFI': inv.entrada_prfi.strftime('%d/%m/%Y') if inv.entrada_prfi else '',
+#                 'Previsão Conclusão': inv.previsao_conclusao.strftime('%d/%m/%Y') if inv.previsao_conclusao else '',
+#                 'Justificativa': inv.justificativa,
+#                 'Resultado Final': inv.resultado_final
+#             })
+#
+#         df = pd.DataFrame(dados)
+#
+#         output = BytesIO()
+#         with pd.ExcelWriter(output, engine='openpyxl') as writer:
+#             df.to_excel(writer, index=False, sheet_name='Investigações')
+#
+#         output.seek(0)
+#
+#         return send_file(
+#             output,
+#             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+#             as_attachment=True,
+#             download_name=f'investigacoes_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+#         )
+#
+#     except Exception as e:
+#         flash(f'Erro ao exportar planilha: {str(e)}', 'danger')
+#         print(f"Erro: {e}")
+#         return redirect(url_for('dashboard'))
 
 
 # ==================== ROTA DE GERENCIAMENTO DE USUÁRIOS ====================
@@ -1311,3 +1311,4 @@ if __name__ == '__main__':
             print(f"   - {u.username} / {u.nome} ({u.nivel})")
     print("\n")
     app.run(debug=True, host='0.0.0.0', port=5000)
+

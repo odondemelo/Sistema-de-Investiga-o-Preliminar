@@ -182,7 +182,7 @@
                 <th class="text-center">Ações</th>
             </tr>
         </thead>
-        <tbody>
+                <tbody>
             <!-- ✅ AQUI MUDOU: investigacoes.items -->
             {% for inv in investigacoes.items %}
 
@@ -218,15 +218,31 @@
                         <span class="badge bg-secondary">{{ inv.status or '-' }}</span>
                     {% endif %}
                 </td>
+
+                <!-- ✅ COLUNA PRAZO CORRIGIDA AQUI -->
                 <td>
-                    {% if dias_restantes is not none %}
-                        <span class="{% if dias_restantes < 0 %}text-danger{% elif dias_restantes <= 15 %}text-warning{% else %}text-success{% endif %}">
-                            <strong>{{ dias_restantes }}</strong> dias
-                        </span>
+                    {% if inv.status == 'Concluída' %}
+                        <!-- Se já acabou, mostra a data de conclusão -->
+                        <div class="text-secondary" style="font-size: 0.9em;">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            {% if inv.data_conclusao %}
+                                {{ inv.data_conclusao.strftime('%d/%m/%Y') }}
+                            {% else %}
+                                Finalizada
+                            {% endif %}
+                        </div>
                     {% else %}
-                        -
+                        <!-- Se está em andamento, mostra os dias (com alerta de atraso se precisar) -->
+                        {% if dias_restantes is not none %}
+                            <span class="{% if dias_restantes < 0 %}text-danger{% elif dias_restantes <= 15 %}text-warning{% else %}text-success{% endif %}">
+                                <strong>{{ dias_restantes }}</strong> dias
+                            </span>
+                        {% else %}
+                            -
+                        {% endif %}
                     {% endif %}
                 </td>
+
                 <td class="text-center">
                     <a href="{{ url_for('detalhes', id=inv.id) }}" class="btn btn-sm btn-outline-primary" title="Ver detalhes">
                         <i class="bi bi-eye"></i>
@@ -235,6 +251,7 @@
             </tr>
             {% endfor %}
         </tbody>
+
     </table>
 </div>
 

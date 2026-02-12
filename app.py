@@ -1392,7 +1392,7 @@ def excluir_investigacao(id):
     return redirect(url_for('investigacoes'))
 
 
-# ==================== ROTA: IMPORTAR SERVIDORES (NOVA FUNCIONALIDADE) ====================
+# ==================== ROTA: IMPORTAR SERVIDORES (ATUALIZADA PARA CSV) ====================
 @app.route('/importar-servidores', methods=['GET', 'POST'])
 def importar_servidores():
     if 'usuario' not in session or session.get('nivel') != 'admin':
@@ -1405,33 +1405,55 @@ def importar_servidores():
             return redirect(request.url)
 
         file = request.files['file']
-        if file and (file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
+        # Verifica se é Excel ou CSV
+        if file and (file.filename.endswith('.xlsx') or file.filename.endswith('.xls') or file.filename.endswith('.csv')):
             try:
-                df = pd.read_excel(file)
-                contador = 0
-                for index, row in df.iterrows():
-                    nome = str(row.get('Nome', row.get('NOME', ''))).strip()
-                    matricula = str(row.get('Matrícula', row.get('MATRICULA', ''))).strip()
-                    cargo = str(row.get('Cargo', row.get('CARGO', ''))).strip()
-                    lotacao = str(row.get('Lotação', row.get('LOTACAO', ''))).strip()
+                # Se for CSV, usa o leitor de CSV (Muito mais leve e rápido)
+                if file.filename.endswith('.csv'):
+                    # dtype=str garante que matrículas como "0123" não virem "123"
+                    df = pd.read_csv(file, dtype=str)
+                else:
+                    # Se for Excel, usa o leitor de Excel
+                    df = pd.read_excel(file, dtype=str)
 
-                    # Verifica se a matrícula já existe para evitar duplicatas
-                    existe = Servidor.query.filter_by(matricula=matricula).first()
-                    if nome and matricula and not existe: # Garante que nome e matrícula não são vazios
+                # Remove espaços em branco dos nomes das colunas
+                df.columns = df.columns.str.strip()
+
+                contador = 0
+                novos_servidores = []
+
+                # Otimização: Pega todas as matrículas existentes de uma vez para não consultar o banco mil vezes
+                matriculas_existentes = set(s.matricula for s in Servidor.query.with_entities(Servidor.matricula).all())
+
+                for index, row in df.iterrows():
+                    # Tenta pegar os campos com ou sem acento/maiúscula
+                    nome = str(row.get('Nome', row.get('NOME', ''))).strip()
+                    # Tenta Matrícula, MATRICULA ou MATRÍCULA
+                    matricula = str(row.get('Matrícula', row.get('MATRICULA', row.get('MATRÍCULA', '')))).strip()
+                    cargo = str(row.get('Cargo', row.get('CARGO', ''))).strip()
+                    lotacao = str(row.get('Lotação', row.get('LOTACAO', row.get('LOTAÇÃO', ''))).strip()
+
+                    # Ignora linhas vazias ou sem matrícula
+                    if not nome or not matricula or nome == 'nan' or matricula == 'nan':
+                        continue
+
+                    # Se a matrícula não existe no banco, adiciona na lista para salvar
+                    if matricula not in matriculas_existentes:
                         novo_servidor = Servidor(
                             nome=nome,
                             matricula=matricula,
                             cargo=cargo,
                             lotacao=lotacao
                         )
-                        db.session.add(novo_servidor)
+                        novos_servidores.append(novo_servidor)
+                        matriculas_existentes.add(matricula) # Adiciona no set para evitar duplicata na própria planilha
                         contador += 1
-                    elif existe:
-                        print(f"⚠️ Servidor com matrícula {matricula} já existe. Ignorando.")
-                    else:
-                        print(f"⚠️ Linha ignorada por falta de Nome ou Matrícula: {row.to_dict()}")
 
-                db.session.commit()
+                # Salva tudo de uma vez (Muito mais rápido e gasta menos memória)
+                if novos_servidores:
+                    db.session.bulk_save_objects(novos_servidores)
+                    db.session.commit()
+
                 flash(f'{contador} servidores importados com sucesso!', 'success')
                 return redirect(url_for('dashboard'))
 
@@ -1442,9 +1464,10 @@ def importar_servidores():
                 import traceback
                 traceback.print_exc()
         else:
-            flash('Formato inválido! Use apenas arquivos Excel (.xlsx ou .xls)', 'danger')
+            flash('Formato inválido! Use CSV (.csv) ou Excel (.xlsx)', 'danger')
 
-    return render_template('importar_servidores.html') # Você precisará criar este template
+    return render_template('importar_servidores.html')
+
 
 
 # ==================== ROTA: API PARA BUSCAR SERVIDOR (PARA AUTOCOMPLETE) ====================

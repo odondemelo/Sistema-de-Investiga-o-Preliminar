@@ -744,26 +744,30 @@ def exportar_pdf_investigacao(id):
         elements.append(create_data_table(data_4))
         elements.append(Spacer(1, 0.5*cm))
 
-        # --- SEÇÃO 5: ANEXOS VINCULADOS ---
+               # --- SEÇÃO 5: ANEXOS VINCULADOS ---
         elements.append(Paragraph("5. ANEXOS VINCULADOS", style_section_header))
 
         if anexos:
             # Cabeçalho da tabela de anexos
             anexos_data = [['Arquivo', 'Tamanho', 'Data Upload']]
             for anexo in anexos:
-                # Tenta calcular tamanho se possível (opcional, aqui deixei fixo ou simulado se não tiver no banco)
-                # Como seu modelo Anexo não tem campo tamanho explícito no código que vi, vou deixar vazio ou pegar do path
+                # Tenta pegar o tamanho (se tiver o campo no banco ou calcula do arquivo)
                 tamanho = "-"
-                try:
-                    path = os.path.join(current_app.config['UPLOAD_FOLDER'], anexo.caminho_arquivo)
-                    if os.path.exists(path):
-                        size_mb = os.path.getsize(path) / (1024 * 1024)
-                        tamanho = f"{size_mb:.2f} MB"
-                except:
-                    pass
+                if hasattr(anexo, 'tamanho_bytes') and anexo.tamanho_bytes:
+                     tamanho = f"{round(anexo.tamanho_bytes / 1024, 2)} KB"
+                else:
+                    # Tenta calcular pelo arquivo físico se não tiver no banco
+                    try:
+                        path = os.path.join(app.config['UPLOAD_FOLDER'], anexo.caminho_arquivo)
+                        if os.path.exists(path):
+                            size_kb = os.path.getsize(path) / 1024
+                            tamanho = f"{size_kb:.2f} KB"
+                    except:
+                        pass
 
+                # CORREÇÃO AQUI: Usando anexo.nome_arquivo em vez de nome_original
                 anexos_data.append([
-                    Paragraph(anexo.nome_original, style_value),
+                    Paragraph(anexo.nome_arquivo, style_value),
                     tamanho,
                     anexo.data_upload.strftime('%d/%m/%Y %H:%M')
                 ])
@@ -779,6 +783,7 @@ def exportar_pdf_investigacao(id):
             elements.append(t_anexos)
         else:
             elements.append(Paragraph("Nenhum anexo vinculado.", style_value))
+
 
         # Construir PDF
         doc.build(elements)

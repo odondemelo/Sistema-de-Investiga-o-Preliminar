@@ -5,10 +5,17 @@ class Config:
     # Chave secreta (IMPORTANTE: mude isso em produção!)
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'chave-super-secreta-pip-2025-mudar-em-producao'
 
-    # Configuração do banco de dados SQLite
+    # Configuração do banco de dados (Com correção para PostgreSQL do Render)
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+
+    # Pega a URL do banco e corrige o prefixo se necessário
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url and database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+    SQLALCHEMY_DATABASE_URI = database_url or \
         'sqlite:///' + os.path.join(BASE_DIR, 'instance', 'database.db')
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Sessão permanente (7 dias)

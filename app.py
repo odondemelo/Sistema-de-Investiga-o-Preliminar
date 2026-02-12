@@ -509,37 +509,29 @@ def imprimir_investigacao(id):
                            esta_atrasado=esta_atrasado,
                            datetime=datetime)
 
-# ==================== ROTA: EXPORTAR PDF DA INVESTIGAÇÃO (LAYOUT PROFISSIONAL) ====================
+# ==================== ROTA: EXPORTAR PDF (LAYOUT RESTAURADO - VERSÃO BOA) ====================
 @app.route('/investigacoes/<int:id>/exportar-pdf')
 def exportar_pdf_investigacao(id):
     if 'usuario' not in session:
         return redirect(url_for('login'))
 
     try:
-        # Imports necessários para o PDF
+        # Imports necessários (mantendo os que você já tem)
         from reportlab.lib.pagesizes import A4
         from reportlab.lib import colors
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import cm
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
-        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY, TA_RIGHT
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
         from io import BytesIO
-        from reportlab.lib.utils import ImageReader # Importante para ler o tamanho real
+        from reportlab.lib.utils import ImageReader
 
         investigacao = Investigacao.query.get_or_404(id)
-        historico = HistoricoDiligencia.query.filter_by(investigacao_id=id).order_by(HistoricoDiligencia.data.desc()).all()
         anexos = Anexo.query.filter_by(investigacao_id=id).order_by(Anexo.data_upload.desc()).all()
 
-        # Calcular dias restantes
-        dias_restantes = None
-        if investigacao.previsao_conclusao and investigacao.status == 'Em Andamento':
-            hoje = datetime.now().date()
-            dias_restantes = (investigacao.previsao_conclusao - hoje).days
-
-        # Criar buffer para o PDF
         buffer = BytesIO()
 
-        # Configurar margens do documento
+        # Configuração do Documento
         doc = SimpleDocTemplate(
             buffer,
             pagesize=A4,
@@ -549,227 +541,263 @@ def exportar_pdf_investigacao(id):
             bottomMargin=1.5*cm
         )
 
-        # Estilos
         styles = getSampleStyleSheet()
 
-        # Estilo do Cabeçalho
-        header_text_style = ParagraphStyle(
-            'HeaderText',
+        # --- ESTILOS PERSONALIZADOS (Baseados no Print "Bom") ---
+
+                # Estilo do Texto do Cabeçalho (Direita) - AUMENTADO
+        style_right = ParagraphStyle(
+            'HeaderRight',
+            parent=styles['Normal'],
+            fontSize=12,      # Fonte base maior
+            alignment=TA_LEFT,
+            leading=16        # Espaçamento entre linhas maior para não ficar grudado
+        )
+
+
+        # Estilo dos Títulos das Seções (Fundo Azul, Texto Branco, Numerado)
+        style_section_header = ParagraphStyle(
+            'SectionHeader',
             parent=styles['Normal'],
             fontSize=10,
-            alignment=TA_LEFT,
-            leading=12
-        )
-
-        header_title_style = ParagraphStyle(
-            'HeaderTitle',
-            parent=styles['Normal'],
-            fontSize=12,
             fontName='Helvetica-Bold',
-            alignment=TA_LEFT,
-            leading=14,
-            textColor=colors.HexColor('#003366') # Azul escuro institucional
+            textColor=colors.white,
+            backColor=colors.HexColor('#0054a6'), # Azul Caesb aproximado
+            borderPadding=(4, 4, 4, 4),
+            spaceAfter=6,
+            spaceBefore=12
         )
 
-        # Estilo para Títulos de Seção
-        section_style = ParagraphStyle(
-            'SectionTitle',
-            parent=styles['Heading2'],
-            fontSize=11,
-            textColor=colors.white,
-            backColor=colors.HexColor('#005b96'), # Azul médio
-            borderPadding=(5, 2, 5, 2), # Padding: top, right, bottom, left
-            spaceAfter=6,
-            spaceBefore=12,
+        # Estilo para Rótulos (Coluna Esquerda da Tabela)
+        style_label = ParagraphStyle(
+            'Label',
+            parent=styles['Normal'],
+            fontSize=9,
             fontName='Helvetica-Bold',
             alignment=TA_LEFT
         )
 
-        # Estilo para texto normal
-        normal_style = ParagraphStyle(
-            'CustomNormal',
+        # Estilo para Valores (Coluna Direita da Tabela)
+        style_value = ParagraphStyle(
+            'Value',
             parent=styles['Normal'],
-            fontSize=10,
-            alignment=TA_JUSTIFY,
-            leading=12,
-            spaceAfter=6
+            fontSize=9,
+            alignment=TA_LEFT
         )
+
+        # Cor de fundo cinza claro para rótulos
+        GRAY_BG = colors.HexColor('#f0f0f0')
 
         elements = []
 
-        # ===== CABEÇALHO COM LOGO (Versão Proporcional) =====
-        # Procura por várias extensões possíveis
-        extensoes = ['logo.png', 'logo.jpg', 'logo.jpeg', 'logo.PNG', 'logo.JPG']
-        logo_path = None
 
+            # --- CABEÇALHO ---
+
+        # 1. Estilo do Texto (CENTRALIZADO)
+        style_header_center = ParagraphStyle(
+            'HeaderCenter',
+            parent=styles['Normal'],
+            fontSize=12,
+            alignment=TA_CENTER,
+            leading=18
+        )
+
+        # 2. Configuração da Logo
+        extensoes = ['logo_caesb.png', 'logo.png', 'logo.jpg']
+        logo_path = None
         for ext in extensoes:
-            caminho_teste = os.path.join(app.root_path, 'static', ext)
-            if os.path.exists(caminho_teste):
-                logo_path = caminho_teste
+            path = os.path.join(app.root_path, 'static', 'images', ext)
+            if not os.path.exists(path):
+                path = os.path.join(app.root_path, 'static', ext)
+            if os.path.exists(path):
+                logo_path = path
                 break
 
-        logo_img = None
-        largura_logo = 3 * cm  # Largura padrão caso falhe
+        logo_img = Paragraph("<b>CAESB</b>", styles['Normal'])
+
+        # Largura da coluna da logo (5cm)
+        col_logo_width = 5 * cm  
 
         if logo_path:
             try:
-                # 1. Ler as dimensões originais da imagem
-                img_reader = ImageReader(logo_path)
-                iw, ih = img_reader.getSize()
+                img = ImageReader(logo_path)
+                iw, ih = img.getSize()
                 aspect = iw / float(ih)
 
-                # 2. Definir altura fixa (2.2cm) e calcular largura proporcional
-                new_height = 2.2 * cm
-                new_width = new_height * aspect
-                largura_logo = new_width + (0.5 * cm) # Margem de segurança para a coluna
+                target_h = 2.5 * cm 
+                max_w = col_logo_width - 0.2 * cm
 
-                logo_img = Image(logo_path, width=new_width, height=new_height)
-            except Exception as e:
-                print(f"Erro ao carregar logo para PDF: {e}")
-                logo_img = Paragraph("LOGO", header_text_style) # Fallback
+                w = target_h * aspect
+                h = target_h
 
-        # Tabela para o cabeçalho
-        header_data = [
-            [logo_img, Paragraph("<b>SISTEMA DE GESTÃO DE INVESTIGAÇÕES</b><br/>Gerado em: " + datetime.now().strftime('%d/%m/%Y %H:%M'), header_title_style)]
-        ]
-        header_table = Table(header_data, colWidths=[largura_logo, doc.width - largura_logo])
-        header_table.setStyle(TableStyle([
+                if w > max_w:
+                    w = max_w
+                    h = w / aspect
+
+                logo_img = Image(logo_path, width=w, height=h)
+            except:
+                pass
+
+        # 3. Texto do Cabeçalho
+        header_text = Paragraph(
+            "<font size='16'><b><font color='#0054a6'>CORREGEDORIA - PRF</font></b></font><br/>"
+            "<font size='13'>Gerência de Investigação - PRFI</font>",
+            style_header_center
+        )
+
+        # 4. Tabela do Cabeçalho com 3 COLUNAS (Truque para centralizar)
+        # Logo (5cm) | Texto (10cm) | Espaço Vazio (3cm)
+        # Total = 18cm. O espaço vazio na direita empurra o texto para a esquerda.
+        t_header = Table([[logo_img, header_text, '']], colWidths=[5*cm, 10*cm, 3*cm])
+
+        t_header.setStyle(TableStyle([
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-            ('ALIGN', (0,0), (0,0), 'LEFT'),
-            ('ALIGN', (1,0), (1,0), 'RIGHT'),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+            ('ALIGN', (0,0), (0,0), 'LEFT'),      # Logo na esquerda
+            ('ALIGN', (1,0), (1,0), 'CENTER'),    # Texto centralizado na coluna dele
+            ('LEFTPADDING', (0,0), (0,0), 0),
         ]))
-        elements.append(header_table)
-        elements.append(Spacer(1, 0.5*cm)) # Espaço após o cabeçalho
-
-        # Título principal
-        elements.append(Paragraph(f"RELATÓRIO DE INVESTIGAÇÃO Nº {investigacao.id}", styles['h1']))
+        elements.append(t_header)
         elements.append(Spacer(1, 0.5*cm))
 
-        # Dados da Investigação
-        elements.append(Paragraph("Dados Principais", section_style))
-        data_inv = [
-            ['Processo GDOC:', investigacao.processo_gdoc or '-'],
-            ['Status:', investigacao.status or '-'],
-            ['Responsável:', investigacao.responsavel or '-'],
-            ['Classificação:', investigacao.classificacao or '-'],
-            ['Assunto:', investigacao.assunto or '-'],
-            ['Entrada PRFI:', investigacao.entrada_prfi.strftime('%d/%m/%Y') if investigacao.entrada_prfi else '-'],
-            ['Previsão Conclusão:', investigacao.previsao_conclusao.strftime('%d/%m/%Y') if investigacao.previsao_conclusao else '-'],
-            ['Data Conclusão:', investigacao.data_conclusao.strftime('%d/%m/%Y') if investigacao.data_conclusao else '-'],
-            ['Dias Restantes:', str(dias_restantes) + ' dias' if dias_restantes is not None else '-'],
+
+
+
+
+
+        # --- FUNÇÃO AUXILIAR PARA CRIAR TABELAS DE DADOS ---
+        def create_data_table(data_list):
+            # Converte strings em Paragraphs para quebra de linha automática
+            formatted_data = []
+            for row in data_list:
+                label = Paragraph(row[0], style_label)
+                value = Paragraph(str(row[1]) if row[1] is not None else '-', style_value)
+                formatted_data.append([label, value])
+
+            t = Table(formatted_data, colWidths=[5*cm, 12.5*cm])
+            t.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (0,-1), GRAY_BG), # Coluna 1 cinza
+                ('GRID', (0,0), (-1,-1), 0.5, colors.grey), # Bordas
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                ('PADDING', (0,0), (-1,-1), 4),
+            ]))
+            return t
+
+        # --- SEÇÃO 1: INFORMAÇÕES GERAIS ---
+        elements.append(Paragraph("1. INFORMAÇÕES GERAIS", style_section_header))
+
+        data_1 = [
+            ['Processo GDOC:', investigacao.processo_gdoc],
+            ['Protocolo Origem:', investigacao.protocolo_origem],
+            ['Origem / Canal:', f"{investigacao.origem or '-'} / {investigacao.canal or '-'}"],
+            ['Unidade Origem:', investigacao.unidade_origem],
+            ['Classificação:', investigacao.classificacao],
+            ['Assunto:', investigacao.assunto],
+            ['Ano:', investigacao.ano]
         ]
-        table_inv = Table(data_inv, colWidths=[5*cm, 12*cm])
-        table_inv.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('PADDING', (0, 0), (-1, -1), 4),
-            ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ]))
-        elements.append(table_inv)
+        elements.append(create_data_table(data_1))
         elements.append(Spacer(1, 0.5*cm))
 
-        # Detalhes do Denunciado
-        elements.append(Paragraph("Detalhes do Denunciado", section_style))
-        data_denunciado = [
-            ['Nome Denunciado:', investigacao.nome_denunciado or '-'],
-            ['Matrícula Denunciado:', investigacao.matricula_denunciado or '-'],
-            ['Vínculo:', investigacao.vinculo or '-'],
-            ['Setor:', investigacao.setor or '-'],
-            ['Diretoria:', investigacao.diretoria or '-'],
+        # --- SEÇÃO 2: ENVOLVIDOS ---
+        elements.append(Paragraph("2. ENVOLVIDOS", style_section_header))
+
+        data_2 = [
+            ['Denunciante(s):', investigacao.denunciante],
+            ['Denunciado:', investigacao.nome_denunciado],
+            ['Matrícula:', investigacao.matricula_denunciado],
+            ['Setor / Diretoria:', f"{investigacao.setor or '-'} / {investigacao.diretoria or '-'}"],
+            ['Vínculo:', investigacao.vinculo]
         ]
-        table_denunciado = Table(data_denunciado, colWidths=[5*cm, 12*cm])
-        table_denunciado.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('PADDING', (0, 0), (-1, -1), 4),
-            ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ]))
-        elements.append(table_denunciado)
+        elements.append(create_data_table(data_2))
         elements.append(Spacer(1, 0.5*cm))
 
-        # Objeto/Especificação
-        elements.append(Paragraph("Objeto / Especificação", section_style))
-        elements.append(Paragraph(investigacao.objeto_especificacao or "Não informado.", normal_style))
-        elements.append(Spacer(1, 0.5*cm))
+        # --- SEÇÃO 3: OBJETO E DILIGÊNCIAS ---
+        # Esta seção é diferente, tem textos longos, melhor não usar a tabela lateral
+        elements.append(Paragraph("3. OBJETO E DILIGÊNCIAS", style_section_header))
+
+        # Objeto
+        elements.append(Paragraph("<b>Objeto / Especificação:</b>", style_label))
+        elements.append(Paragraph(investigacao.objeto_especificacao or "Não informado.", style_value))
+        elements.append(Spacer(1, 0.3*cm))
 
         # Diligências
-        elements.append(Paragraph("Diligências", section_style))
-        elements.append(Paragraph(investigacao.diligencias or "Nenhuma diligência registrada.", normal_style))
+        elements.append(Paragraph("<b>Diligências Realizadas:</b>", style_label))
+        # Converte quebras de linha do texto para <br/> do HTML/PDF
+        diligencias_text = (investigacao.diligencias or "Nenhuma diligência registrada.").replace('\n', '<br/>')
+        elements.append(Paragraph(diligencias_text, style_value))
         elements.append(Spacer(1, 0.5*cm))
 
-        # Histórico de Diligências
-        elements.append(Paragraph("Histórico de Eventos", section_style))
-        if historico:
-            hist_data = [['Data/Hora', 'Usuário', 'Tipo', 'Descrição']]
-            for h in historico:
-                hist_data.append([
-                    h.data.strftime('%d/%m/%Y %H:%M'),
-                    h.usuario,
-                    h.tipo.replace('_', ' ').title(), # Formata o tipo (ex: 'upload_anexo' -> 'Upload Anexo')
-                    h.descricao
-                ])
+        # --- SEÇÃO 4: PRAZOS E STATUS ---
+        elements.append(Paragraph("4. PRAZOS E STATUS", style_section_header))
 
-            table_hist = Table(hist_data, colWidths=[3.5*cm, 3*cm, 2.5*cm, 8*cm])
-            table_hist.setStyle(TableStyle([
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e0e0e0')),
-                ('FONTSIZE', (0, 0), (-1, -1), 8),
-                ('VALIGN', (0,0), (-1,-1), 'TOP'),
-                ('WORDWRAP', (3,1), (3,-1), 1), # Quebra de linha na descrição
-            ]))
-            elements.append(table_hist)
-        else:
-            elements.append(Paragraph("Nenhum histórico de eventos registrado.", normal_style))
+        # Formatar datas
+        entrada = investigacao.entrada_prfi.strftime('%d/%m/%Y') if investigacao.entrada_prfi else '-'
+        previsao = investigacao.previsao_conclusao.strftime('%d/%m/%Y') if investigacao.previsao_conclusao else '-'
+
+        data_4 = [
+            ['Responsável:', investigacao.responsavel],
+            ['Complexidade:', investigacao.complexidade],
+            ['Entrada PRFI:', entrada],
+            ['Previsão Conclusão:', previsao],
+            ['Status Atual:', investigacao.status],
+            ['Resultado Final:', investigacao.resultado_final]
+        ]
+        elements.append(create_data_table(data_4))
         elements.append(Spacer(1, 0.5*cm))
 
-        # Anexos
-        elements.append(Paragraph("Anexos", section_style))
+        # --- SEÇÃO 5: ANEXOS VINCULADOS ---
+        elements.append(Paragraph("5. ANEXOS VINCULADOS", style_section_header))
+
         if anexos:
-            anexos_data = [['Nome do Arquivo', 'Data Upload', 'Tamanho']]
-            for a in anexos:
+            # Cabeçalho da tabela de anexos
+            anexos_data = [['Arquivo', 'Tamanho', 'Data Upload']]
+            for anexo in anexos:
+                # Tenta calcular tamanho se possível (opcional, aqui deixei fixo ou simulado se não tiver no banco)
+                # Como seu modelo Anexo não tem campo tamanho explícito no código que vi, vou deixar vazio ou pegar do path
+                tamanho = "-"
+                try:
+                    path = os.path.join(current_app.config['UPLOAD_FOLDER'], anexo.caminho_arquivo)
+                    if os.path.exists(path):
+                        size_mb = os.path.getsize(path) / (1024 * 1024)
+                        tamanho = f"{size_mb:.2f} MB"
+                except:
+                    pass
+
                 anexos_data.append([
-                    a.nome_arquivo,
-                    a.data_upload.strftime('%d/%m/%Y %H:%M'),
-                    f"{round(a.tamanho_bytes / 1024, 2)} KB" if a.tamanho_bytes else '-'
+                    Paragraph(anexo.nome_original, style_value),
+                    tamanho,
+                    anexo.data_upload.strftime('%d/%m/%Y %H:%M')
                 ])
-            table_anexos = Table(anexos_data, colWidths=[8*cm, 4*cm, 5*cm])
-            table_anexos.setStyle(TableStyle([
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e0e0e0')),
-                ('FONTSIZE', (0, 0), (-1, -1), 8),
-                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+
+            t_anexos = Table(anexos_data, colWidths=[10*cm, 3*cm, 4.5*cm])
+            t_anexos.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), GRAY_BG), # Cabeçalho cinza
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                ('PADDING', (0,0), (-1,-1), 4),
             ]))
-            elements.append(table_anexos)
+            elements.append(t_anexos)
         else:
-            elements.append(Paragraph("Nenhum anexo registrado.", normal_style))
-        elements.append(Spacer(1, 0.5*cm))
+            elements.append(Paragraph("Nenhum anexo vinculado.", style_value))
 
-        # Justificativa e Resultado Final
-        elements.append(Paragraph("Justificativa", section_style))
-        elements.append(Paragraph(investigacao.justificativa or "Não informado.", normal_style))
-        elements.append(Spacer(1, 0.5*cm))
-
-        elements.append(Paragraph("Resultado Final", section_style))
-        elements.append(Paragraph(investigacao.resultado_final or "Não informado.", normal_style))
-        elements.append(Spacer(1, 0.5*cm))
-
-
+        # Construir PDF
         doc.build(elements)
         buffer.seek(0)
-        return send_file(buffer, as_attachment=True, download_name=f'relatorio_investigacao_{investigacao.id}.pdf', mimetype='application/pdf')
 
-    except ImportError:
-        flash('Erro: Biblioteca ReportLab não instalada. Instale com "pip install reportlab"', 'danger')
-        return redirect(url_for('detalhes', id=id))
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f"Ficha_Investigacao_{id}.pdf",
+            mimetype='application/pdf'
+        )
+
     except Exception as e:
         flash(f'Erro ao gerar PDF: {str(e)}', 'danger')
-        print(f"Erro ao gerar PDF: {e}")
+        print(f"Erro PDF: {e}")
         import traceback
         traceback.print_exc()
         return redirect(url_for('detalhes', id=id))
+
 
 
 # ==================== ROTAS DE ANEXOS ====================

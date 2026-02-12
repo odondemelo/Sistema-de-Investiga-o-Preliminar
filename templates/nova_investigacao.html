@@ -119,7 +119,7 @@
                 <!-- Nome Denunciado -->
                 <div class="col-md-6 mb-3">
                     <label class="form-label"><strong>Nome Denunciado:</strong></label>
-                    <input type="text" class="form-control" name="nome_denunciado" placeholder="Nome do denunciado">
+                    <input type="text" class="form-control" id="nome_denunciado_input" name="nome_denunciado" placeholder="Nome do denunciado">
                 </div>
 
                 <!-- Matrícula Denunciado -->
@@ -263,8 +263,10 @@
         </button>
     </div>
 </form>
+{% endblock %}
 
-<!-- ==================== JAVASCRIPT PARA ASSUNTO DINÂMICO E CÁLCULO DE PRAZO ==================== -->
+{% block extra_js %}
+<!-- ==================== JAVASCRIPT PARA ASSUNTO DINÂMICO, CÁLCULO DE PRAZO E AUTOCOMPLETE ==================== -->
 <script>
 // Mapeamento de Classificação -> Assuntos
 const assuntosPorClassificacao = {
@@ -359,6 +361,32 @@ document.getElementById('entrada_prfi').addEventListener('change', function() {
         document.getElementById('previsao_conclusao').value = `${ano}-${mes}-${dia}`;
     }
 });
-</script>
 
+// ==================== NOVO SCRIPT: AUTOCOMPLETE PARA NOME DENUNCIADO ====================
+$(function() {
+    $("#nome_denunciado_input").autocomplete({ // Usa o ID que definimos no input
+        source: function(request, response) {
+            $.ajax({
+                url: "{{ url_for('buscar_servidor') }}", // Sua rota existente no app.py
+                dataType: "json",
+                data: {
+                    q: request.term // O parâmetro que sua rota espera ('q')
+                },
+                success: function(data) {
+                    // Mapeia os dados para o formato esperado pelo autocomplete
+                    // Sua rota retorna uma lista de dicionários, queremos o 'nome'
+                    response($.map(data, function(item) {
+                        return {
+                            label: item.nome, // O que será exibido na lista de sugestões
+                            value: item.nome  // O que será colocado no campo de input ao selecionar
+                        };
+                    }));
+                }
+            });
+        },
+        minLength: 3, // Começa a buscar após 3 caracteres digitados (para combinar com sua rota)
+        delay: 300 // Pequeno atraso para não sobrecarregar o servidor
+    });
+});
+</script>
 {% endblock %}

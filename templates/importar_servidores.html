@@ -1,0 +1,27 @@
+    <!-- templates/importar_servidores.html -->
+    {% extends "base.html" %}
+
+    {% block content %}
+    <div class="container mt-4">
+        <h2>Importar Servidores</h2>
+        <p>Utilize esta página para importar uma lista de servidores a partir de um arquivo Excel (.xlsx ou .xls).</p>
+        <p>O arquivo Excel deve conter as colunas: <strong>Nome</strong>, <strong>Matrícula</strong>, <strong>Cargo</strong> e <strong>Lotação</strong>.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" enctype="multipart/form-data" action="{{ url_for('importar_servidores') }}">
+            <div class="mb-3">
+                <label for="file" class="form-label">Selecione o arquivo Excel:</label>
+                <input type="file" class="form-control" id="file" name="file" accept=".xlsx, .xls" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Importar Servidores</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+    {% endblock %}

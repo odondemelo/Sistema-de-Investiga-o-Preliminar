@@ -1,15 +1,16 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, current_app
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, current_app, jsonify # Adicionei jsonify
 from models import db, Investigacao, HistoricoDiligencia, Usuario, Anexo
 from config import Config
 from datetime import datetime, timedelta
 import json
-# import pandas as pd  # ✅ COMENTADO
-
+import pandas as pd  # ✅ DESCOMENTADO E USADO
 from io import BytesIO
 from collections import Counter
 from werkzeug.utils import secure_filename
 import os
 import mimetypes
+from flask_login import login_required
+
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -27,8 +28,16 @@ def format_date(value, format='%d/%m/%Y'):
 
 # Função auxiliar para verificar extensões permitidas
 def allowed_file(filename):
+    # Adicionei 'xls' e 'xlsx' para a importação de servidores
+    ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx', 'xls', 'xlsx', 'txt'}
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Configuração de pastas (garantir que a pasta 'uploads' exista)
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 
 # ==================== INICIALIZAÇÃO DO BANCO ====================
@@ -54,6 +63,22 @@ with app.app_context():
     print("🔐 Migração de usuários concluída!")
 
 
+# ==================== NOVO MODELO: SERVIDOR ====================
+class Servidor(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(150), nullable=False)
+    matricula = db.Column(db.String(50), nullable=True, unique=True) # Matrícula única
+    cargo = db.Column(db.String(100), nullable=True)
+    lotacao = db.Column(db.String(100), nullable=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'matricula': self.matricula,
+            'cargo': self.cargo,
+            'lotacao': self.lotacao
+        }
 
 
 # ==================== CONTEXT PROCESSOR PARA NOTIFICAÇÕES ====================
@@ -466,7 +491,6 @@ def imprimir_investigacao(id):
 @app.route('/investigacoes/<int:id>/exportar-pdf')
 def exportar_pdf_investigacao(id):
     if 'usuario' not in session:
-        flash('Você precisa fazer login primeiro!', 'warning')
         return redirect(url_for('login'))
 
     try:
@@ -478,6 +502,7 @@ def exportar_pdf_investigacao(id):
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
         from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY, TA_RIGHT
         from io import BytesIO
+        from reportlab.lib.utils import ImageReader # Importante para ler o tamanho real
 
         investigacao = Investigacao.query.get_or_404(id)
         historico = HistoricoDiligencia.query.filter_by(investigacao_id=id).order_by(HistoricoDiligencia.data.desc()).all()
@@ -550,9 +575,7 @@ def exportar_pdf_investigacao(id):
 
         elements = []
 
-               # ===== CABEÇALHO COM LOGO (Versão Proporcional) =====
-        from reportlab.lib.utils import ImageReader  # Importante para ler o tamanho real
-
+        # ===== CABEÇALHO COM LOGO (Versão Proporcional) =====
         # Procura por várias extensões possíveis
         extensoes = ['logo.png', 'logo.jpg', 'logo.jpeg', 'logo.PNG', 'logo.JPG']
         logo_path = None
@@ -573,199 +596,169 @@ def exportar_pdf_investigacao(id):
                 iw, ih = img_reader.getSize()
                 aspect = iw / float(ih)
 
-                # 2. Definir altura fixa (2.5cm) e calcular largura proporcional
+                # 2. Definir altura fixa (2.2cm) e calcular largura proporcional
                 new_height = 2.2 * cm
                 new_width = new_height * aspect
                 largura_logo = new_width + (0.5 * cm) # Margem de segurança para a coluna
 
                 logo_img = Image(logo_path, width=new_width, height=new_height)
-                logo_img.hAlign = 'LEFT'
             except Exception as e:
-                print(f"❌ Erro ao carregar imagem: {e}")
-                logo_img = Paragraph("[ERRO IMG]", normal_style)
+                print(f"Erro ao carregar logo para PDF: {e}")
+                logo_img = Paragraph("LOGO", header_text_style) # Fallback
 
-        # Texto do cabeçalho
-        texto_cabecalho = [
-            Paragraph("COMPANHIA DE SANEAMENTO AMBIENTAL DO DF - CAESB", header_text_style),
-            Paragraph("Corregedoria - PRF", header_title_style),
-            Paragraph("Gerência de Investigação", header_text_style),
-            Spacer(1, 0.2*cm),
-            Paragraph(f"FICHA DE INVESTIGAÇÃO #{investigacao.id}", ParagraphStyle('Title', parent=styles['Heading1'], fontSize=16, alignment=TA_LEFT, spaceBefore=10))
+        # Tabela para o cabeçalho
+        header_data = [
+            [logo_img, Paragraph("<b>SISTEMA DE GESTÃO DE INVESTIGAÇÕES</b><br/>Gerado em: " + datetime.now().strftime('%d/%m/%Y %H:%M'), header_title_style)]
         ]
+        header_table = Table(header_data, colWidths=[largura_logo, doc.width - largura_logo])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('ALIGN', (0,0), (0,0), 'LEFT'),
+            ('ALIGN', (1,0), (1,0), 'RIGHT'),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ]))
+        elements.append(header_table)
+        elements.append(Spacer(1, 0.5*cm)) # Espaço após o cabeçalho
 
-        # Tabela do cabeçalho (Logo na esquerda, Texto na direita)
-        if logo_img:
-            # A coluna da logo se adapta à largura da imagem
-            data_header = [[logo_img, texto_cabecalho]]
-            t_header = Table(data_header, colWidths=[largura_logo, 13*cm])
-            t_header.setStyle(TableStyle([
-                ('VALIGN', (0,0), (-1,-1), 'TOP'),
-                ('LEFTPADDING', (0,0), (-1,-1), 0),
-                ('BOTTOMPADDING', (0,0), (-1,-1), 10),
-            ]))
-            elements.append(t_header)
-        else:
-            # Se não tiver logo, só mostra o texto
-            for item in texto_cabecalho:
-                elements.append(item)
-            elements.append(Spacer(1, 0.5*cm))
-
+        # Título principal
+        elements.append(Paragraph(f"RELATÓRIO DE INVESTIGAÇÃO Nº {investigacao.id}", styles['h1']))
         elements.append(Spacer(1, 0.5*cm))
 
-        # ===== INFORMAÇÕES GERAIS =====
-        elements.append(Paragraph("1. INFORMAÇÕES GERAIS", section_style))
-
-        dados_gerais = [
-            [Paragraph('<b>Processo GDOC:</b>', normal_style), investigacao.processo_gdoc or '-'],
-            [Paragraph('<b>Protocolo Origem:</b>', normal_style), investigacao.protocolo_origem or '-'],
-            [Paragraph('<b>Origem / Canal:</b>', normal_style), f"{investigacao.origem or '-'} / {investigacao.canal or '-'}"],
-            [Paragraph('<b>Unidade Origem:</b>', normal_style), investigacao.unidade_origem or '-'],
-            [Paragraph('<b>Classificação:</b>', normal_style), investigacao.classificacao or '-'],
-            [Paragraph('<b>Assunto:</b>', normal_style), investigacao.assunto or '-'],
-            [Paragraph('<b>Ano:</b>', normal_style), str(investigacao.ano) if investigacao.ano else '-'],
+        # Dados da Investigação
+        elements.append(Paragraph("Dados Principais", section_style))
+        data_inv = [
+            ['Processo GDOC:', investigacao.processo_gdoc or '-'],
+            ['Status:', investigacao.status or '-'],
+            ['Responsável:', investigacao.responsavel or '-'],
+            ['Classificação:', investigacao.classificacao or '-'],
+            ['Assunto:', investigacao.assunto or '-'],
+            ['Entrada PRFI:', investigacao.entrada_prfi.strftime('%d/%m/%Y') if investigacao.entrada_prfi else '-'],
+            ['Previsão Conclusão:', investigacao.previsao_conclusao.strftime('%d/%m/%Y') if investigacao.previsao_conclusao else '-'],
+            ['Data Conclusão:', investigacao.data_conclusao.strftime('%d/%m/%Y') if investigacao.data_conclusao else '-'],
+            ['Dias Restantes:', str(dias_restantes) + ' dias' if dias_restantes is not None else '-'],
         ]
-
-        t_gerais = Table(dados_gerais, colWidths=[5*cm, 12.5*cm])
-        t_gerais.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')), # Fundo cinza claro na coluna 1
-            ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('PADDING', (0, 0), (-1, -1), 6),
-        ]))
-        elements.append(t_gerais)
-
-        # ===== ENVOLVIDOS =====
-        elements.append(Paragraph("2. ENVOLVIDOS", section_style))
-
-        dados_envolvidos = [
-            [Paragraph('<b>Denunciante(s):</b>', normal_style), Paragraph(investigacao.denunciante or '-', normal_style)],
-            [Paragraph('<b>Denunciado:</b>', normal_style), Paragraph(investigacao.nome_denunciado or '-', normal_style)],
-            [Paragraph('<b>Matrícula:</b>', normal_style), investigacao.matricula_denunciado or '-'],
-            [Paragraph('<b>Setor / Diretoria:</b>', normal_style), f"{investigacao.setor or '-'} / {investigacao.diretoria or '-'}"],
-            [Paragraph('<b>Vínculo:</b>', normal_style), investigacao.vinculo or '-'],
-        ]
-
-        t_envolvidos = Table(dados_envolvidos, colWidths=[5*cm, 12.5*cm])
-        t_envolvidos.setStyle(TableStyle([
+        table_inv = Table(data_inv, colWidths=[5*cm, 12*cm])
+        table_inv.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
-            ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('PADDING', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('PADDING', (0, 0), (-1, -1), 4),
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
         ]))
-        elements.append(t_envolvidos)
+        elements.append(table_inv)
+        elements.append(Spacer(1, 0.5*cm))
 
-        # ===== OBJETO E DILIGÊNCIAS =====
-        elements.append(Paragraph("3. OBJETO E DILIGÊNCIAS", section_style))
+        # Detalhes do Denunciado
+        elements.append(Paragraph("Detalhes do Denunciado", section_style))
+        data_denunciado = [
+            ['Nome Denunciado:', investigacao.nome_denunciado or '-'],
+            ['Matrícula Denunciado:', investigacao.matricula_denunciado or '-'],
+            ['Vínculo:', investigacao.vinculo or '-'],
+            ['Setor:', investigacao.setor or '-'],
+            ['Diretoria:', investigacao.diretoria or '-'],
+        ]
+        table_denunciado = Table(data_denunciado, colWidths=[5*cm, 12*cm])
+        table_denunciado.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('PADDING', (0, 0), (-1, -1), 4),
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ]))
+        elements.append(table_denunciado)
+        elements.append(Spacer(1, 0.5*cm))
 
-        elements.append(Paragraph("<b>Objeto / Especificação:</b>", normal_style))
+        # Objeto/Especificação
+        elements.append(Paragraph("Objeto / Especificação", section_style))
         elements.append(Paragraph(investigacao.objeto_especificacao or "Não informado.", normal_style))
-        elements.append(Spacer(1, 0.3*cm))
+        elements.append(Spacer(1, 0.5*cm))
 
-        elements.append(Paragraph("<b>Diligências Realizadas:</b>", normal_style))
-        if investigacao.diligencias:
-            # Quebrar linhas para o PDF
-            for linha in investigacao.diligencias.split('\n'):
-                if linha.strip():
-                    elements.append(Paragraph(linha, normal_style))
-        else:
-            elements.append(Paragraph("Nenhuma diligência registrada.", normal_style))
+        # Diligências
+        elements.append(Paragraph("Diligências", section_style))
+        elements.append(Paragraph(investigacao.diligencias or "Nenhuma diligência registrada.", normal_style))
+        elements.append(Spacer(1, 0.5*cm))
 
-        # ===== PRAZOS E STATUS =====
-        elements.append(Paragraph("4. PRAZOS E STATUS", section_style))
-
-        dados_prazos = [
-            [Paragraph('<b>Responsável:</b>', normal_style), investigacao.responsavel or '-'],
-            [Paragraph('<b>Complexidade:</b>', normal_style), investigacao.complexidade or '-'],
-            [Paragraph('<b>Entrada PRFI:</b>', normal_style), investigacao.entrada_prfi.strftime('%d/%m/%Y') if investigacao.entrada_prfi else '-'],
-            [Paragraph('<b>Previsão Conclusão:</b>', normal_style), investigacao.previsao_conclusao.strftime('%d/%m/%Y') if investigacao.previsao_conclusao else '-'],
-            [Paragraph('<b>Status Atual:</b>', normal_style), investigacao.status or '-'],
-            [Paragraph('<b>Resultado Final:</b>', normal_style), investigacao.resultado_final or '-'],
-        ]
-
-        # Adicionar data de conclusão se houver
-        if investigacao.data_conclusao:
-             dados_prazos.append([Paragraph('<b>Data Conclusão:</b>', normal_style), investigacao.data_conclusao.strftime('%d/%m/%Y')])
-
-        t_prazos = Table(dados_prazos, colWidths=[5*cm, 12.5*cm])
-        t_prazos.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
-            ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('PADDING', (0, 0), (-1, -1), 6),
-        ]))
-        elements.append(t_prazos)
-
-        # ===== ANEXOS =====
-        if anexos:
-            elements.append(Paragraph("5. ANEXOS VINCULADOS", section_style))
-
-            dados_anexos = [[Paragraph('<b>Arquivo</b>', normal_style), Paragraph('<b>Tamanho</b>', normal_style), Paragraph('<b>Data Upload</b>', normal_style)]]
-            for anexo in anexos:
-                tamanho_mb = round(anexo.tamanho_bytes / 1024 / 1024, 2)
-                data_upload = anexo.data_upload.strftime('%d/%m/%Y %H:%M') if anexo.data_upload else '-'
-                dados_anexos.append([
-                    Paragraph(anexo.nome_arquivo, normal_style), 
-                    f"{tamanho_mb} MB", 
-                    data_upload
+        # Histórico de Diligências
+        elements.append(Paragraph("Histórico de Eventos", section_style))
+        if historico:
+            hist_data = [['Data/Hora', 'Usuário', 'Tipo', 'Descrição']]
+            for h in historico:
+                hist_data.append([
+                    h.data.strftime('%d/%m/%Y %H:%M'),
+                    h.usuario,
+                    h.tipo.replace('_', ' ').title(), # Formata o tipo (ex: 'upload_anexo' -> 'Upload Anexo')
+                    h.descricao
                 ])
 
-            t_anexos = Table(dados_anexos, colWidths=[9.5*cm, 3*cm, 5*cm])
-            t_anexos.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e0e0e0')), # Cabeçalho cinza
-                ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('PADDING', (0, 0), (-1, -1), 5),
+            table_hist = Table(hist_data, colWidths=[3.5*cm, 3*cm, 2.5*cm, 8*cm])
+            table_hist.setStyle(TableStyle([
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e0e0e0')),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                ('WORDWRAP', (3,1), (3,-1), 1), # Quebra de linha na descrição
             ]))
-            elements.append(t_anexos)
+            elements.append(table_hist)
+        else:
+            elements.append(Paragraph("Nenhum histórico de eventos registrado.", normal_style))
+        elements.append(Spacer(1, 0.5*cm))
 
-        # ===== RODAPÉ =====
-        elements.append(Spacer(1, 1.5*cm))
-        rodape_style = ParagraphStyle(
-            'Rodape',
-            parent=styles['Normal'],
-            fontSize=8,
-            textColor=colors.grey,
-            alignment=TA_CENTER
-        )
-        elements.append(Paragraph(
-            f"Documento gerado automaticamente pelo Sistema PIP em {datetime.now().strftime('%d/%m/%Y às %H:%M')}",
-            rodape_style
-        ))
-        elements.append(Paragraph(
-            f"Usuário responsável pela emissão: {session.get('nome')}",
-            rodape_style
-        ))
+        # Anexos
+        elements.append(Paragraph("Anexos", section_style))
+        if anexos:
+            anexos_data = [['Nome do Arquivo', 'Data Upload', 'Tamanho']]
+            for a in anexos:
+                anexos_data.append([
+                    a.nome_arquivo,
+                    a.data_upload.strftime('%d/%m/%Y %H:%M'),
+                    f"{round(a.tamanho_bytes / 1024, 2)} KB" if a.tamanho_bytes else '-'
+                ])
+            table_anexos = Table(anexos_data, colWidths=[8*cm, 4*cm, 5*cm])
+            table_anexos.setStyle(TableStyle([
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e0e0e0')),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ]))
+            elements.append(table_anexos)
+        else:
+            elements.append(Paragraph("Nenhum anexo registrado.", normal_style))
+        elements.append(Spacer(1, 0.5*cm))
 
-        # Gerar PDF
+        # Justificativa e Resultado Final
+        elements.append(Paragraph("Justificativa", section_style))
+        elements.append(Paragraph(investigacao.justificativa or "Não informado.", normal_style))
+        elements.append(Spacer(1, 0.5*cm))
+
+        elements.append(Paragraph("Resultado Final", section_style))
+        elements.append(Paragraph(investigacao.resultado_final or "Não informado.", normal_style))
+        elements.append(Spacer(1, 0.5*cm))
+
+
         doc.build(elements)
-
-        # Preparar para download
         buffer.seek(0)
-        nome_arquivo = f"Investigacao_{investigacao.id}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        return send_file(buffer, as_attachment=True, download_name=f'relatorio_investigacao_{investigacao.id}.pdf', mimetype='application/pdf')
 
-        return send_file(
-            buffer,
-            mimetype='application/pdf',
-            as_attachment=True,
-            download_name=nome_arquivo
-        )
-
+    except ImportError:
+        flash('Erro: Biblioteca ReportLab não instalada. Instale com "pip install reportlab"', 'danger')
+        return redirect(url_for('detalhes', id=id))
     except Exception as e:
         flash(f'Erro ao gerar PDF: {str(e)}', 'danger')
-        print(f"❌ Erro ao gerar PDF: {e}")
+        print(f"Erro ao gerar PDF: {e}")
         import traceback
         traceback.print_exc()
         return redirect(url_for('detalhes', id=id))
 
-# ==================== ROTA: UPLOAD DE ANEXOS ====================
-@app.route('/investigacoes/<int:id>/upload_anexo', methods=['POST'])
+
+# ==================== ROTAS DE ANEXOS ====================
+@app.route('/investigacoes/<int:id>/upload-anexo', methods=['POST'])
 def upload_anexo(id):
     if 'usuario' not in session:
         flash('Você precisa fazer login primeiro!', 'warning')
         return redirect(url_for('login'))
 
-    if session.get('nivel') not in ['admin', 'investigador']:
-        flash('Você não tem permissão para anexar arquivos!', 'danger')
+    if session.get('nivel') not in ['admin', 'editor', 'investigador']:
+        flash('Você não tem permissão para enviar anexos!', 'danger')
         return redirect(url_for('detalhes', id=id))
 
     investigacao = Investigacao.query.get_or_404(id)
@@ -783,94 +776,77 @@ def upload_anexo(id):
     if file and allowed_file(file.filename):
         try:
             filename = secure_filename(file.filename)
-            base, ext = os.path.splitext(filename)
-            unique_filename = f"{base}_{datetime.now().strftime('%Y%m%d%H%M%S')}{ext}"
-
-            # ✅ GARANTIR QUE A PASTA EXISTE ANTES DE SALVAR
-            pasta_uploads = app.config['UPLOAD_FOLDER']
-            if not os.path.exists(pasta_uploads):
-                os.makedirs(pasta_uploads)
-
-            filepath = os.path.join(pasta_uploads, unique_filename)
+            # Garante nome único para o arquivo no sistema de arquivos
+            unique_filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
             file.save(filepath)
 
-            mime_type, _ = mimetypes.guess_type(filepath)
-            if not mime_type:
-                mime_type = 'application/octet-stream'
+            # Obtém o tamanho do arquivo
+            tamanho_bytes = os.path.getsize(filepath)
 
             novo_anexo = Anexo(
-                investigacao_id=investigacao.id,
+                investigacao_id=id,
                 nome_arquivo=filename,
-                caminho_arquivo=unique_filename,
-                tipo_mime=mime_type,
-                tamanho_bytes=os.path.getsize(filepath),
-                usuario_upload=session.get('nome')
+                caminho_arquivo=unique_filename, # Salva o nome único no banco
+                usuario_upload=session.get('nome'),
+                tamanho_bytes=tamanho_bytes
             )
             db.session.add(novo_anexo)
+
+            hist = HistoricoDiligencia(
+                investigacao_id=id,
+                usuario=session.get('nome'),
+                descricao=f"Anexo '{filename}' adicionado.",
+                tipo='upload_anexo'
+            )
+            db.session.add(hist)
+
             db.session.commit()
-
-            flash(f'Arquivo "{filename}" anexado com sucesso!', 'success')
-
+            flash('Anexo enviado com sucesso!', 'success')
         except Exception as e:
             db.session.rollback()
-            flash(f'Erro ao fazer upload do arquivo: {str(e)}', 'danger')
-            print(f"Erro no upload: {e}")
+            flash(f'Erro ao enviar anexo: {str(e)}', 'danger')
+            print(f"❌ Erro ao enviar anexo: {e}")
     else:
         flash('Tipo de arquivo não permitido!', 'danger')
 
     return redirect(url_for('detalhes', id=id))
 
-
-# ==================== ROTA: DOWNLOAD DE ANEXOS ====================
-@app.route('/anexos/<int:anexo_id>/download')
-def download_anexo(anexo_id):
+@app.route('/anexos/<int:id>/download')
+def download_anexo(id):
     if 'usuario' not in session:
-        flash('Você precisa fazer login primeiro!', 'warning')
         return redirect(url_for('login'))
 
-    anexo = Anexo.query.get_or_404(anexo_id)
+    anexo = Anexo.query.get_or_404(id)
     filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], anexo.caminho_arquivo)
 
-    if not os.path.exists(filepath):
-        flash('Arquivo não encontrado no servidor!', 'danger')
+    if os.path.exists(filepath):
+        # Tenta adivinhar o mimetype
+        mimetype, _ = mimetypes.guess_type(filepath)
+        if mimetype is None:
+            mimetype = 'application/octet-stream' # Tipo genérico se não conseguir adivinhar
+
+        return send_file(filepath, as_attachment=True, download_name=anexo.nome_arquivo, mimetype=mimetype)
+    else:
+        flash('Arquivo não encontrado!', 'danger')
         return redirect(url_for('detalhes', id=anexo.investigacao_id))
 
-    try:
-        return send_file(filepath, as_attachment=True, download_name=anexo.nome_arquivo, mimetype=anexo.tipo_mime)
-    except Exception as e:
-        flash(f'Erro ao baixar arquivo: {str(e)}', 'danger')
-        print(f"Erro no download: {e}")
-        return redirect(url_for('detalhes', id=anexo.investigacao_id))
-
-# ==================== ROTA: EXCLUIR ANEXO ====================
-@app.route('/anexos/<int:anexo_id>/excluir', methods=['POST'])
-def excluir_anexo(anexo_id):
+@app.route('/anexos/<int:id>/excluir', methods=['POST'])
+def excluir_anexo(id):
     if 'usuario' not in session:
-        flash('Você precisa fazer login primeiro!', 'warning')
         return redirect(url_for('login'))
+    if session.get('nivel') not in ['admin', 'editor']: # Apenas admin/editor podem excluir
+        flash('Acesso negado para excluir anexos!', 'danger')
+        return redirect(url_for('detalhes', id=anexo.investigacao_id)) # Redireciona para a investigação do anexo
 
-    # Controle de permissão: Apenas admin e investigador podem excluir
-    if session.get('nivel') not in ['admin', 'investigador']:
-        flash('Você não tem permissão para excluir anexos!', 'danger')
-        return redirect(url_for('investigacoes'))
+    anexo = Anexo.query.get_or_404(id)
+    investigacao_id = anexo.investigacao_id # Guarda o ID antes de excluir o anexo
+    nome_arquivo = anexo.nome_arquivo # Guarda o nome para a mensagem
 
     try:
-        anexo = Anexo.query.get_or_404(anexo_id)
-        investigacao_id = anexo.investigacao_id
-        nome_arquivo = anexo.nome_arquivo
-        caminho_arquivo = anexo.caminho_arquivo
-
-        # Caminho completo do arquivo no servidor
-        filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], caminho_arquivo)
-
-        # Excluir arquivo físico do servidor (se existir)
+        filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], anexo.caminho_arquivo)
         if os.path.exists(filepath):
-            try:
-                os.remove(filepath)
-                print(f"✅ Arquivo físico excluído: {filepath}")
-            except Exception as e:
-                print(f"⚠️ Erro ao excluir arquivo físico: {e}")
-                # Continua mesmo se não conseguir excluir o arquivo físico
+            os.remove(filepath) # Exclui o arquivo físico
 
         # Excluir registro do banco de dados
         db.session.delete(anexo)
@@ -892,7 +868,7 @@ def excluir_anexo(anexo_id):
         db.session.rollback()
         flash(f'Erro ao excluir anexo: {str(e)}', 'danger')
         print(f"❌ Erro ao excluir anexo: {e}")
-        return redirect(url_for('investigacoes'))
+        return redirect(url_for('detalhes', id=investigacao_id))
 
     return redirect(url_for('detalhes', id=investigacao_id))
 
@@ -964,6 +940,8 @@ def nova_investigacao():
             db.session.rollback()
             flash(f'Erro ao cadastrar investigação: {str(e)}', 'danger')
             print(f"Erro: {e}")
+            import traceback
+            traceback.print_exc()
 
     return render_template('nova_investigacao.html', datetime=datetime)
 
@@ -1041,7 +1019,6 @@ def editar_investigacao(id):
             investigacao.resultado_final = check_and_update('Resultado Final', request.form.get('resultado_final'), old_resultado_final)
 
             # ✅ REGISTRAR DATA DE CONCLUSÃO (MANUAL OU AUTOMÁTICA)
-            # ✅ REGISTRAR DATA DE CONCLUSÃO (MANUAL OU AUTOMÁTICA)
             novo_status = request.form.get('status')
             data_conclusao_form = request.form.get('data_conclusao')
 
@@ -1096,6 +1073,8 @@ def editar_investigacao(id):
             db.session.rollback()
             flash(f'Erro ao atualizar investigação: {str(e)}', 'danger')
             print(f"Erro: {e}")
+            import traceback
+            traceback.print_exc()
 
     return render_template('editar_investigacao.html', investigacao=investigacao)
 
@@ -1141,6 +1120,8 @@ def adicionar_diligencia(id):
         db.session.rollback()
         flash(f'Erro ao adicionar diligência: {str(e)}', 'danger')
         print(f"Erro: {e}")
+        import traceback
+        traceback.print_exc()
 
     return redirect(url_for('detalhes', id=id))
 
@@ -1260,6 +1241,8 @@ def novo_usuario():
         db.session.rollback()
         flash(f'Erro ao criar usuário: {str(e)}', 'danger')
         print(f"Erro: {e}")
+        import traceback
+        traceback.print_exc()
 
     return redirect(url_for('usuarios'))
 
@@ -1289,6 +1272,8 @@ def editar_usuario(id):
         db.session.rollback()
         flash(f'Erro ao atualizar usuário: {str(e)}', 'danger')
         print(f"Erro: {e}")
+        import traceback
+        traceback.print_exc()
 
     return redirect(url_for('usuarios'))
 
@@ -1309,6 +1294,9 @@ def ativar_usuario(id):
     except Exception as e:
         db.session.rollback()
         flash(f'Erro: {str(e)}', 'danger')
+        print(f"Erro: {e}")
+        import traceback
+        traceback.print_exc()
 
     return redirect(url_for('usuarios'))
 
@@ -1333,6 +1321,9 @@ def desativar_usuario(id):
     except Exception as e:
         db.session.rollback()
         flash(f'Erro: {str(e)}', 'danger')
+        print(f"Erro: {e}")
+        import traceback
+        traceback.print_exc()
 
     return redirect(url_for('usuarios'))
 
@@ -1389,6 +1380,98 @@ def excluir_investigacao(id):
     return redirect(url_for('investigacoes'))
 
 
+# ==================== ROTA: IMPORTAR SERVIDORES (NOVA FUNCIONALIDADE) ====================
+@app.route('/importar-servidores', methods=['GET', 'POST'])
+def importar_servidores():
+    if 'usuario' not in session or session.get('nivel') != 'admin':
+        flash('Acesso negado!', 'danger')
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            flash('Nenhum arquivo selecionado!', 'warning')
+            return redirect(request.url)
+
+        file = request.files['file']
+        if file and (file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
+            try:
+                df = pd.read_excel(file)
+                contador = 0
+                for index, row in df.iterrows():
+                    nome = str(row.get('Nome', row.get('NOME', ''))).strip()
+                    matricula = str(row.get('Matrícula', row.get('MATRICULA', ''))).strip()
+                    cargo = str(row.get('Cargo', row.get('CARGO', ''))).strip()
+                    lotacao = str(row.get('Lotação', row.get('LOTACAO', ''))).strip()
+
+                    # Verifica se a matrícula já existe para evitar duplicatas
+                    existe = Servidor.query.filter_by(matricula=matricula).first()
+                    if nome and matricula and not existe: # Garante que nome e matrícula não são vazios
+                        novo_servidor = Servidor(
+                            nome=nome,
+                            matricula=matricula,
+                            cargo=cargo,
+                            lotacao=lotacao
+                        )
+                        db.session.add(novo_servidor)
+                        contador += 1
+                    elif existe:
+                        print(f"⚠️ Servidor com matrícula {matricula} já existe. Ignorando.")
+                    else:
+                        print(f"⚠️ Linha ignorada por falta de Nome ou Matrícula: {row.to_dict()}")
+
+                db.session.commit()
+                flash(f'{contador} servidores importados com sucesso!', 'success')
+                return redirect(url_for('dashboard'))
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Erro ao processar arquivo: {str(e)}', 'danger')
+                print(f"❌ Erro ao importar servidores: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            flash('Formato inválido! Use apenas arquivos Excel (.xlsx ou .xls)', 'danger')
+
+    return render_template('importar_servidores.html') # Você precisará criar este template
+
+
+# ==================== ROTA: API PARA BUSCAR SERVIDOR (PARA AUTOCOMPLETE) ====================
+@app.route('/api/buscar-servidor')
+# @login_required  <-- MANTENHA COMENTADO POR ENQUANTO
+def buscar_servidor():
+    try:
+        termo = request.args.get('q', '')
+
+        # Se digitar menos de 3 letras, não busca nada
+        if len(termo) < 3:
+            return jsonify([])
+
+        # Busca no banco de dados (limite de 10 para não travar)
+        servidores = Servidor.query.filter(Servidor.nome.ilike(f'%{termo}%')).limit(10).all()
+
+        # Monta a lista de resultados
+        resultado = []
+        for s in servidores:
+            resultado.append({
+                'nome': s.nome,
+                'matricula': s.matricula,
+                'cargo': s.cargo,
+                'lotacao': s.lotacao
+            })
+
+        return jsonify(resultado)
+
+    except Exception as e:
+        print(f"ERRO AO BUSCAR SERVIDOR: {e}")
+        return jsonify([])
+
+
+
+
+
+
+
+
 if __name__ == '__main__':
     print("🚀 Iniciando Sistema PIP...")
     print("📋 Usuários cadastrados no banco:")
@@ -1398,5 +1481,3 @@ if __name__ == '__main__':
             print(f"   - {u.username} / {u.nome} ({u.nivel})")
     print("\n")
     app.run(debug=True, host='0.0.0.0', port=5000)
-
-

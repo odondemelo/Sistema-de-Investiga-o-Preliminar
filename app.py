@@ -11,8 +11,6 @@ import os
 import mimetypes
 from flask_login import login_required
 
-
-
 app = Flask(__name__)
 app.config.from_object(Config)
 
@@ -1480,6 +1478,9 @@ def buscar_servidor():
         return jsonify([])
 
 
+# ISSO VAI FORÇAR A CRIAÇÃO DAS TABELAS NO RENDER
+with app.app_context():
+    db.create_all()
 
 
 

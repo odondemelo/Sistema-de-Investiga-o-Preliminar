@@ -391,10 +391,16 @@ def investigacoes():
             (Investigacao.protocolo_origem.ilike(search_term))
         )
 
-    # ==================== ORDENAÇÃO ====================
-    ordenar_por = request.args.get('ordenar_por', 'id_desc')
+    # ==================== ORDENAÇÃO (AJUSTADA) ====================
+    # Mudei o padrão para 'entrada_desc' (Data de Entrada mais recente primeiro)
+    ordenar_por = request.args.get('ordenar_por', 'entrada_desc')
 
-    if ordenar_por == 'id_asc':
+    if ordenar_por == 'entrada_desc':
+        # Ordena por data de entrada (mais recente no topo) e usa ID como desempate
+        query = query.order_by(Investigacao.entrada_prfi.desc(), Investigacao.id.desc())
+    elif ordenar_por == 'entrada_asc':
+        query = query.order_by(Investigacao.entrada_prfi.asc(), Investigacao.id.asc())
+    elif ordenar_por == 'id_asc':
         query = query.order_by(Investigacao.id.asc())
     elif ordenar_por == 'id_desc':
         query = query.order_by(Investigacao.id.desc())
@@ -410,6 +416,9 @@ def investigacoes():
         query = query.order_by(Investigacao.responsavel.asc())
     elif ordenar_por == 'responsavel_desc':
         query = query.order_by(Investigacao.responsavel.desc())
+    else:
+        # Fallback caso venha algo estranho, garante a ordem por data
+        query = query.order_by(Investigacao.entrada_prfi.desc(), Investigacao.id.desc())
 
     # ==================== EXECUTAR QUERY COM PAGINAÇÃO ====================
     # Pega o número da página da URL (padrão = 1)
@@ -430,7 +439,7 @@ def investigacoes():
     lista_complexidades = db.session.query(Investigacao.complexidade).distinct().order_by(Investigacao.complexidade).all()
 
     return render_template('investigacoes.html',
-                         investigacoes=pagination, # ✅ Passando o objeto de paginação
+                         investigacoes=pagination, 
                          total_resultados=total_resultados,
                          # Listas para popular os filtros
                          lista_status=[s[0] for s in lista_status if s[0]],

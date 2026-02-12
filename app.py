@@ -16,6 +16,16 @@ app.config.from_object(Config)
 
 db.init_app(app)
 
+# ==================== FILTRO DE DATA (CORREÇÃO DE FUSO HORÁRIO) ====================
+@app.template_filter('data_brasil')
+def data_brasil_filter(data):
+    if not data:
+        return ""
+    # Subtrai 3 horas do horário UTC para virar horário de Brasília
+    data_local = data - timedelta(hours=3)
+    return data_local.strftime('%d/%m/%Y às %H:%M')
+
+
 # ==================== FILTROS PERSONALIZADOS DO JINJA2 ====================
 @app.template_filter('reject_key')
 def reject_key(args, key):
@@ -1111,18 +1121,26 @@ def adicionar_diligencia(id):
             flash('A descrição da diligência não pode estar vazia!', 'warning')
             return redirect(url_for('detalhes', id=id))
 
+        # ===== CORREÇÃO DE HORÁRIO AQUI =====
+        # Força a subtração de 3 horas para garantir horário de Brasília
+        data_brasilia = datetime.now() 
+
         historico = HistoricoDiligencia(
             investigacao_id=id,
             usuario=session.get('nome'),
             descricao=descricao,
-            tipo='diligencia'
+            tipo='diligencia',
+            data=data_brasilia  # <--- Forçando a data corrigida no histórico
         )
         db.session.add(historico)
 
+        # Formata a data corrigida para usar no texto abaixo
+        data_formatada = data_brasilia.strftime('%d/%m/%Y %H:%M')
+
         if investigacao.diligencias:
-            investigacao.diligencias += f"\n\n[{datetime.now().strftime('%d/%m/%Y %H:%M')}] {session.get('nome')}:\n{descricao}"
+            investigacao.diligencias += f"\n\n[{data_formatada}] {session.get('nome')}:\n{descricao}"
         else:
-            investigacao.diligencias = f"[{datetime.now().strftime('%d/%m/%Y %H:%M')}] {session.get('nome')}:\n{descricao}"
+            investigacao.diligencias = f"[{data_formatada}] {session.get('nome')}:\n{descricao}"
 
         db.session.commit()
 
@@ -1136,6 +1154,7 @@ def adicionar_diligencia(id):
         traceback.print_exc()
 
     return redirect(url_for('detalhes', id=id))
+
 
 
 # ==================== ROTA: EXPORTAR EXCEL (COMENTADA TEMPORARIAMENTE) ====================

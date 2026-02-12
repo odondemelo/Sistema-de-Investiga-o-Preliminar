@@ -246,20 +246,25 @@
 </div>
 {% endif %}
 
-<!-- ==================== PAGINAÇÃO ==================== -->
+<!-- ==================== PAGINAÇÃO CORRIGIDA ==================== -->
 <nav aria-label="Navegação de páginas" class="mt-4">
     <ul class="pagination justify-content-center">
 
         <!-- Botão Anterior -->
         <li class="page-item {% if not investigacoes.has_prev %}disabled{% endif %}">
-            <a class="page-link" href="{{ url_for('investigacoes', page=investigacoes.prev_num, **request.args) }}" tabindex="-1">Anterior</a>
+            <a class="page-link" 
+               href="{{ url_for('investigacoes', page=investigacoes.prev_num, **(request.args.copy() | reject_key('page'))) }}" 
+               tabindex="-1">Anterior</a>
         </li>
 
         <!-- Números das Páginas -->
         {% for page_num in investigacoes.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
             {% if page_num %}
                 <li class="page-item {% if page_num == investigacoes.page %}active{% endif %}">
-                    <a class="page-link" href="{{ url_for('investigacoes', page=page_num, **request.args) }}">{{ page_num }}</a>
+                    <a class="page-link" 
+                       href="{{ url_for('investigacoes', page=page_num, **(request.args.copy() | reject_key('page'))) }}">
+                        {{ page_num }}
+                    </a>
                 </li>
             {% else %}
                 <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -268,7 +273,10 @@
 
         <!-- Botão Próximo -->
         <li class="page-item {% if not investigacoes.has_next %}disabled{% endif %}">
-            <a class="page-link" href="{{ url_for('investigacoes', page=investigacoes.next_num, **request.args) }}">Próximo</a>
+            <a class="page-link" 
+               href="{{ url_for('investigacoes', page=investigacoes.next_num, **(request.args.copy() | reject_key('page'))) }}">
+                Próximo
+            </a>
         </li>
     </ul>
 
@@ -276,5 +284,6 @@
         Página {{ investigacoes.page }} de {{ investigacoes.pages }}
     </div>
 </nav>
+
 
 {% endblock %}

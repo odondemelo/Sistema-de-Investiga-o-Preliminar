@@ -12,10 +12,24 @@ import mimetypes
 from flask_login import login_required
 
 
+
 app = Flask(__name__)
 app.config.from_object(Config)
 
 db.init_app(app)
+
+# ==================== FILTROS PERSONALIZADOS DO JINJA2 ====================
+@app.template_filter('reject_key')
+def reject_key(args, key):
+    """
+    Remove uma chave específica de um dicionário de argumentos (request.args).
+    Usado na paginação para remover o 'page' antigo antes de adicionar o novo.
+    """
+    new_args = args.copy()
+    if key in new_args:
+        new_args.pop(key)
+    return new_args
+
 
 # Filtro de data personalizado
 @app.template_filter('date')

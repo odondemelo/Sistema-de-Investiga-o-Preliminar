@@ -1431,7 +1431,8 @@ def importar_servidores():
                     # Tenta Matrícula, MATRICULA ou MATRÍCULA
                     matricula = str(row.get('Matrícula', row.get('MATRICULA', row.get('MATRÍCULA', '')))).strip()
                     cargo = str(row.get('Cargo', row.get('CARGO', ''))).strip()
-                    lotacao = str(row.get('Lotação', row.get('LOTACAO', row.get('LOTAÇÃO', ''))).strip()
+                    lotacao = str(row.get('Lotação', row.get('LOTACAO', row.get('LOTAÇÃO', '')))).strip()
+
 
                     # Ignora linhas vazias ou sem matrícula
                     if not nome or not matricula or nome == 'nan' or matricula == 'nan':

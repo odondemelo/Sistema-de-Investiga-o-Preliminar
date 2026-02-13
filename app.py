@@ -793,6 +793,14 @@ def exportar_pdf_investigacao(id):
         else:
             elements.append(Paragraph("Nenhum anexo vinculado.", style_value))
 
+        elements.append(Spacer(1, 0.5*cm))
+
+        # --- SEÇÃO 6: JUSTIFICATIVA ---
+        elements.append(Paragraph("6. JUSTIFICATIVA", style_section_header))
+
+        justificativa_text = (investigacao.justificativa or "Não informada.").replace('\n', '<br/>')
+        elements.append(Paragraph(justificativa_text, style_value))
+        elements.append(Spacer(1, 0.5*cm))
 
         # Construir PDF
         doc.build(elements)
